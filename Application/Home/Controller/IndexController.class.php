@@ -1494,7 +1494,7 @@ public function seniorBothMatch() {
 
         //检查个性签名文字是否合法
         $msgCheck = A('Home/Chat')->messageCheck($Data['personal']);
-        if($Data['personal']=="" || msgCheck['errcode']==0){
+        if($Data['personal']=="" || msgCheck['errcode']!=87014){
             $map['age'] = $Data['age'];
             $map['school'] = $Data['school'];
             $map['work'] = $Data['zhiye'];
@@ -1512,10 +1512,8 @@ public function seniorBothMatch() {
                 xformatOutPutJsonData('success', '', '');
             }
             xformatOutPutJsonData('fail', 1, "未知错误");
-        }else if($msgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', 1, "个性签名内容有违法违规内容");
         }else{
-            xformatOutPutJsonData('fail', 1, "调用出现错误".$msgCheck['errcode']);
+            xformatOutPutJsonData('fail', 1, "个性签名内容有违法违规内容");
         }
     }
 
@@ -1805,7 +1803,11 @@ public function seniorBothMatch() {
         $imgCheck = A('Home/Chat')->mediaCheck($file);
         $imgCheck = json_decode(stripslashes($imgCheck));
         $imgCheck = json_decode(json_encode($imgCheck), true);
-        if($imgCheck['errcode']==0){
+        if($imgCheck['errcode']==87014){
+            xformatOutPutJsonData('fail', 1, "有违法违规内容");
+        }else if($imgCheck['errcode']==-1){
+            xformatOutPutJsonData('fail', 1, "图片尺寸超过 750px x 1334px");
+        }else{
             $config = array(
                 'rootPath' => "./Public/Avatar/",
                 //'rootPath' => "./Public/MiniCode/",
@@ -1828,10 +1830,6 @@ public function seniorBothMatch() {
                 $fileurl =str_replace('http','https',IMG_PATH). '/Public/Avatar/' . $info['file']['savepath'] . $info['file']['savename'];
                 xformatOutPutJsonData('success', $fileurl, "");
             }
-        }else if($imgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', 1, "有违法违规内容");
-        }else{
-            xformatOutPutJsonData('fail', 1, "调用出现错误".$imgCheck['errcode']);
         }
     }
         public function editAvatar() {
@@ -1849,7 +1847,7 @@ public function seniorBothMatch() {
             // $msgCheck = json_decode(stripslashes($msgCheck));
             // $msgCheck = json_decode(json_encode($msgCheck), true);
             // xformatOutPutJsonData('test', $msgCheck, $msgCheck['errcode']);
-            if($msgCheck['errcode']==0){
+            if($msgCheck['errcode']!=87014){
                 $data['name']=base64_encode($Data['nickname']);
                 if(!empty($Data['images'])){
                     $data['avatar']=$Data['images'];
@@ -1859,10 +1857,8 @@ public function seniorBothMatch() {
                     $result=array('status' =>'success' ,'code' => 1);
                     xformatOutPutJsonData('success', 1, "");
                 }
-            }else if($msgCheck['errcode']==87014){
-                xformatOutPutJsonData('fail', 1, "有违法违规内容");
             }else{
-                xformatOutPutJsonData('fail', 1, "调用出现错误".$msgCheck['errcode']);
+                xformatOutPutJsonData('fail', 1, "有违法违规内容");
             }
         }
 
@@ -2534,7 +2530,11 @@ public function seniorBothMatch() {
         $imgCheck = A('Home/Chat')->mediaCheck($file);
         $imgCheck = json_decode(stripslashes($imgCheck));
         $imgCheck = json_decode(json_encode($imgCheck), true);
-        if($imgCheck['errcode']==0){
+        if($imgCheck['errcode']==87014){
+            xformatOutPutJsonData('fail', $Data['index'], "有违法违规内容");
+        }else if($imgCheck['errcode']==-1){
+            xformatOutPutJsonData('fail', $Data['index'], "图片尺寸超过 750px x 1334px");
+        }else{
             $config = array(
                 'rootPath' => "./Public/RoomImage/",
                 'exts' => array('jpg', 'gif', 'png', 'jpeg', 'bmp'),
@@ -2551,10 +2551,6 @@ public function seniorBothMatch() {
                 $fileurl =str_replace('http','https',IMG_PATH). '/Public/RoomImage/'. $info['file']['savepath'] . $info['file']['savename'];
                 xformatOutPutJsonData('success', $Data['index'], $fileurl);
             }
-        }else if($imgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', $Data['index'], "有违法违规内容");
-        }else{
-            xformatOutPutJsonData('fail', $Data['index'], "调用出现错误".$imgCheck['errcode']);
         }
     }
 
@@ -2585,7 +2581,7 @@ public function seniorBothMatch() {
         if($heimingdan){
             $shanchumingdan = json_decode($heimingdan['dislikehouse'],true);
         }else{
-
+            $shanchumingdan = '';
         }
         //设置不同城市权重
         $PosWeight = M('city')->field('city_score')->where('c_name="'.$myPosition['city'].'"')->find();
@@ -3793,23 +3789,26 @@ public function seniorBothMatch() {
         //检查文字是否合法
         $msgCheck = A('Home/Chat')->messageCheck($Data['floor_count']);
         // xformatOutPutJsonData('test', $msgCheck, $msgCheck['errcode']);
-        if($Data['floor_count']==''|| $msgCheck['errcode']==0){
+        if($Data['floor_count']==''|| $msgCheck['errcode']!=87014){
             $msgCheck = A('Home/Chat')->messageCheck($Data['description']);
-            if($Data['description']==''|| $msgCheck['errcode']==0){
+            if($Data['description']==''|| $msgCheck['errcode']!=87014){
                 $msgCheck = A('Home/Chat')->messageCheck($Data['xiaoqu']);
-                if($msgCheck['errcode']==0){
+                if($msgCheck['errcode']!=87014){
                     $msgCheck = A('Home/Chat')->messageCheck($Data['yuezujin']);
-                    if($msgCheck['errcode']==0){
+                    if($msgCheck['errcode']!=87014){
                         //是不是应该检查这个房主是否有其他的房子，并删除这些房源资源，或者直接更新
                         $myRoom = M('room')->field('images')->where('master_id=' . $uid)->find();
                         if($myRoom){
                             $oldImages= explode(";",$myRoom['images']);
+                            $newImages= explode(";",$Data['images']);
+                            $index = 0;
                             foreach ($oldImages as $k => $v) {
-                                if($v != ''){
+                                if($v != ''&& $v!=$newImages[$index]){
                                     $startIndex = strpos($v,"/Public");
                                     //删除旧照片
                                     unlink('.' . substr($v,$startIndex));
                                 }
+                                $index = $index + 1;
                             }
                             $update = array(
                                 'xiaoqu' => $Data['xiaoqu'],
@@ -3854,25 +3853,17 @@ public function seniorBothMatch() {
                             xformatOutPutJsonData('success', $roomid, 'insert');
                         }
                         xformatOutPutJsonData('fail', $Data, "未知错误");
-                    }else if($msgCheck['errcode']==87014){
-                        xformatOutPutJsonData('fail', $Data['yuezujin'], "月租金内容有违法违规内容");
                     }else{
-                        xformatOutPutJsonData('fail', $Data['yuezujin'], "月租金调用出现错误");
+                        xformatOutPutJsonData('fail', $Data['yuezujin'], "月租金内容有违法违规内容");
                     }
-                }else if($msgCheck['errcode']==87014){
-                    xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称内容有违法违规内容");
                 }else{
-                    xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称调用出现错误");
+                    xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称内容有违法违规内容");
                 }
-            }else if($msgCheck['errcode']==87014){
-                xformatOutPutJsonData('fail', $Data['description'], "房屋概况内容有违法违规内容");
             }else{
-                xformatOutPutJsonData('fail', $Data['description'], "房屋概况调用出现错误");
+                xformatOutPutJsonData('fail', $Data['description'], "房屋概况内容有违法违规内容");
             }
-        }else if($msgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', $Data['floor_count'], "所在楼层内容有违法违规内容");
         }else{
-            xformatOutPutJsonData('fail', $Data['floor_count'], "所在楼层调用出现错误");
+            xformatOutPutJsonData('fail', $Data['floor_count'], "所在楼层内容有违法违规内容");
         }
     }
     

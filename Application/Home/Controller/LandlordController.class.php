@@ -215,7 +215,11 @@ class LandlordController extends HomeBaseController {
         $imgCheck = A('Home/Chat')->mediaCheck($file);
         $imgCheck = json_decode(stripslashes($imgCheck));
         $imgCheck = json_decode(json_encode($imgCheck), true);
-        if($imgCheck['errcode']==0){
+        if($imgCheck['errcode']==87014){
+            xformatOutPutJsonData('fail', $Data['index'], "有违法违规内容");
+        }else if($imgCheck['errcode']==-1){
+            xformatOutPutJsonData('fail', $Data['index'], "图片尺寸超过 750px x 1334px");
+        }else{
             if($Data['roomid']==0){
                 $config = array(
                     'rootPath' => "./Public/landlordRoomImg/landlord_TMP/",
@@ -233,41 +237,22 @@ class LandlordController extends HomeBaseController {
                     xformatOutPutJsonData('success', $Data['index'], $fileurl);
                 }
             }else{
-                //$startIndex = strpos($v,"/Public");
-                // unlink('.' . substr($v,$startIndex));
-                $path = "./Public/landlordRoomImg/".$uid."/".$Data['roomid']."/";
-                // 扫描目录下的所有文件
-                $filename = scandir($path);
-                // 定义一个变量接收旧的文件名
-                $oldImage='';
-                foreach($filename as $k=>$v){
-                    if(strpos($v,$Data['index'].'-')!==FALSE){
-                        $oldImage = $v;
-                        break;
-                    }
-                }
-                // xformatOutPutJsonData('test', $oldImage, $filename);
                 $config = array(
-                    'rootPath' => $path,
+                    'rootPath' => "./Public/landlordRoomImg/landlord_TMP/",
                     'exts' => array('jpg', 'gif', 'png', 'jpeg', 'bmp'),
-                    'autoSub' => false,
-                    'saveName' => $Data['index'].'-'.time(),
+                    'autoSub' => true,
+                    'saveName' => $uid.'-'.$Data['roomid'].'-'.$Data['index'].'-'.time(),
                     'replace' => true,
                 );
                 $upload = new \Think\Upload($config);
                 $info = $upload->upload($file);
                 if(!$info) {// 上传错误提示错误信息
-                    xformatOutPutJsonData('fail', 1, $upload->getError());
+                    xformatOutPutJsonData('fail', -1, $upload->getError());
                 }else{// 上传成功 获取上传文件信息
-                    $fileurl =str_replace('http','https',IMG_PATH). '/Public/landlordRoomImg/'.$uid."/".$Data['roomid']."/". $info['file']['savename'];
-                    unlink($path . $oldImage);
+                    $fileurl =str_replace('http','https',IMG_PATH). '/Public/landlordRoomImg/landlord_TMP/'. $info['file']['savepath'] . $info['file']['savename'];
                     xformatOutPutJsonData('success', $Data['index'], $fileurl);
                 }
             }
-        }else if($imgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', $Data['index'], "有违法违规内容");
-        }else{
-            xformatOutPutJsonData('fail', $Data['index'], "调用出现错误");
         }
     }
     /*
@@ -284,11 +269,11 @@ class LandlordController extends HomeBaseController {
         }
         //检查文字是否合法
         $msgCheck = A('Home/Chat')->messageCheck($Data['description']);
-        if($Data['description']==''|| $msgCheck['errcode']==0){
+        if($Data['description']==''|| $msgCheck['errcode']!=87014){
             $msgCheck = A('Home/Chat')->messageCheck($Data['xiaoqu']);
-            if($msgCheck['errcode']==0){
+            if($msgCheck['errcode']!=87014){
                 $msgCheck = A('Home/Chat')->messageCheck($Data['zhongjie']);
-                if($Data['zhongjie']==''|| $msgCheck['errcode']==0){
+                if($Data['zhongjie']==''|| $msgCheck['errcode']!=87014){
                     if($Data['roomid']==0){
                         //插入新的房源
                         $inserData = array(
@@ -322,7 +307,7 @@ class LandlordController extends HomeBaseController {
                         $oldImages= explode(";",$Data['images']);
                         foreach ($oldImages as $k => $v) {
                             if($v != ''){
-                                $startIndex = strpos($v,"/Public/landlordRoomImg/".uid.'/');
+                                $startIndex = strpos($v,"/Public/landlordRoomImg/".$uid.'/');
                                 if($startIndex===FALSE){
                                     //文件路径不规范，把照片移动过来
                                     $index = explode("-",basename($v))[1];
@@ -346,13 +331,14 @@ class LandlordController extends HomeBaseController {
                                         }
                                     }
                                     if(!rename($olddir,$newdir)){
-                                        xformatOutPutJsonData('fail', "旧名字".$olddir, '新名字'.$newdir);
+                                        // xformatOutPutJsonData('fail', "旧名字".$olddir, '新名字'.$newdir);
+                                        xformatOutPutJsonData('fail', "旧名字", '新名字');
                                     }else{
                                         $oldImages[$k] = str_replace('http','https',IMG_PATH). '/Public/landlordRoomImg/'.$uid.'/'.$roomid.'/'.$index.'-.'.$ext;
                                     }
-                                    //$startIndex = strpos($v,"/Public");
-                                    //删除旧照片
-                                    //unlink('.' . substr($v,$startIndex));
+                                    // $startIndex = strpos($v,"/Public");
+                                    // // 删除旧照片
+                                    // unlink('.' . substr($v,$startIndex));
                                 }
                             }
                         }
@@ -361,10 +347,67 @@ class LandlordController extends HomeBaseController {
                         );
                         // xformatOutPutJsonData('test', $update, $roomid);
                         $res = M('landlord_room')->where('id='.$roomid)->save($update); 
+                        if($res){
+                            //删除这个房子原来的图片资源
+                            foreach ($Data['images'] as $k => $v) {
+                                if($v != ''){
+                                    $startIndex = strpos($v,"/Public");
+                                    //删除旧照片
+                                    unlink('.' . substr($v,$startIndex));
+                                }
+                            }
+                        }
                         xformatOutPutJsonData('success', $res, '房屋id'.$roomid);
                     }else{
-                        //更新已有房源
+                        //将房源图片移动过来
+                        $oldImages= explode(";",$Data['images']);
+                        $index = 0;
+                        foreach ($oldImages as $k => $v) {
+                            if($v != ''){
+                                $startIndex = strpos($v,"/Public/landlordRoomImg/".$uid.'/');
+                                if($startIndex===FALSE){
+                                    //文件路径不规范，把照片移动过来
+                                    // $index = explode("-",basename($v))[2];
+                                    $ext = explode(".",basename($v))[1];
+                                    // xformatOutPutJsonData(basename($v), $index, $ext);
+                                    // $olddir = str_replace('http://','data/wwwroot/',IMG_PATH). substr($v,strpos($v,"/Public"));
+                                    // $newdir =str_replace('http://','data/wwwroot/',IMG_PATH).'/Public/landlordRoomImg/'.$uid.'/'.$roomid.'/'.$index.'.'.$ext;
+                                    $olddir =$_SERVER['DOCUMENT_ROOT']. substr($v,strpos($v,"/Public"));
+                                    $path = $_SERVER['DOCUMENT_ROOT'].'/Public/landlordRoomImg/'.$uid.'/'.$Data['roomid'];
+                                    $time_ext = time();
+                                    $newdir =$path.'/'.$index.'-'.$time_ext.".".$ext;
+                                    // xformatOutPutJsonData('test', $v, $olddir.'改成'.$newdir);
+                                    if (is_dir($path)){  
+                                        // echo "对不起！目录 " . $path . " 已经存在！";
+                                    }else{
+                                        //第三个参数是“true”表示能创建多级目录，iconv防止中文目录乱码
+                                        $res=mkdir(iconv("UTF-8", "GBK", $path),0777,true); 
+                                        if ($res){
+                                            // echo "目录 $path 创建成功";
+                                        }else{
+                                            xformatOutPutJsonData('fail', "", "目录".$path."创建失败");
+                                        }
+                                    }
+                                    if(!rename($olddir,$newdir)){
+                                        xformatOutPutJsonData('fail'.$index, "旧名字".$olddir, '新名字'.$newdir);
+                                        // xformatOutPutJsonData('fail', "旧名字", '新名字');
+                                    }else{
+                                        $oldImages[$k] = str_replace('http','https',IMG_PATH). '/Public/landlordRoomImg/'.$uid.'/'.$Data['roomid'].'/'.$index.'-'.$time_ext.".".$ext;
+                                    }
+                                    //$startIndex = strpos($v,"/Public");
+                                    //删除旧照片
+                                    //unlink('.' . substr($v,$startIndex));
+                                }
+                            }
+                            $index = $index + 1;
+                        }
                         $roomid = $Data['roomid'];
+                        //找到这个房子原来的图片资源
+                        $myRoom = M('landlord_room')->field('images')->where('id=' . $roomid)->find();
+                        if($myRoom){
+                            $olds= explode(";",$myRoom['images']);
+                        }
+                        //更新已有房源
                         $update = array(
                             'xiaoqu' => $Data['xiaoqu'],
                             'size' => $Data['size'],
@@ -383,26 +426,33 @@ class LandlordController extends HomeBaseController {
                             'lon' => $Data['lon'],
                             'lat' => $Data['lat'],
                             'address' => $Data['address'],
-                            'images'=>$Data['images'],
+                            'images'=>implode(";",$oldImages),
                             'update_time' => date("Y-m-d H:i:s",time()),
                         );
                         $res = M('landlord_room')->where('id='.$roomid)->save($update); 
+                        $index = 0;
+                        if($res){
+                            //删除这个房子原来的图片资源
+                            foreach ($olds as $k => $v) {
+                                if($v != ''&&($v!=$oldImages[$index]||$oldImages[$index]=="")){
+                                    $startIndex = strpos($v,"/Public");
+                                    //删除旧照片
+                                    unlink('.' . substr($v,$startIndex));
+                                }
+                                $index = $index + 1;
+                            }
+                        }
                         xformatOutPutJsonData('success', $res, '房屋id'.$roomid);
+                        // xformatOutPutJsonData('success', $olds, $oldImages);
                     }
-                }else if($msgCheck['errcode']==87014){
-                    xformatOutPutJsonData('fail', $Data['zhongjie'], "中介内容有违法违规内容");
                 }else{
-                    xformatOutPutJsonData('fail', $Data['zhongjie'], "中介调用出现错误");
+                    xformatOutPutJsonData('fail', $Data['zhongjie'], "中介内容有违法违规内容");
                 }
-            }else if($msgCheck['errcode']==87014){
-                xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称内容有违法违规内容");
             }else{
-                xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称调用出现错误");
+                xformatOutPutJsonData('fail', $Data['xiaoqu'], "小区名称内容有违法违规内容");
             }
-        }else if($msgCheck['errcode']==87014){
-            xformatOutPutJsonData('fail', $Data['description'], "房屋概况内容有违法违规内容");
         }else{
-            xformatOutPutJsonData('fail', $Data['description'], "房屋概况调用出现错误");
+            xformatOutPutJsonData('fail', $Data['description'], "房屋概况内容有违法违规内容");
         }
     }
     //获取指数函数数值,要求 函数递减，(x1, y1) 是整个函数的最高点
@@ -443,11 +493,7 @@ class LandlordController extends HomeBaseController {
         $roominfo = M('landlord_room')->field('id,price,start_date,subway,lon,lat')->where('master_id=' . $uid)->select();
         //获取那些被我拉黑的室友
         $heimingdan = M('shoucang')->field('heimingdan')->where('uid= -' . $uid)->find();
-        if($heimingdan){
-            $shanchumingdan = explode(",",$heimingdan['heimingdan']);
-        }else{
-
-        }
+        $shanchumingdan = explode(",",$heimingdan['heimingdan']);
         foreach ($roominfo as $k => $room) {
             /*设置要选取的房源地点的经纬度界限
             1.同一条经线上，纬度相差1°，其距离相差约111千米。
@@ -478,13 +524,16 @@ class LandlordController extends HomeBaseController {
             if(count($subway)==0){
                 array_push($subway,0);
             }
-            $mymatchuser = M('user')->field("id,name,avatar,sex,shangquan,ditie,checkintime,budget,school,work,is_place,has_room")->where("( is_place=1 AND shangquan in (" .implode(",",$circle) .") OR is_place=2 AND ditie in (".implode(",",$subway).")) AND is_match=2 AND checkoutime>='".$room['start_date']."'")->select();
+            // $mymatchuser = M('user')->field("id,name,avatar,sex,shangquan,ditie,budget,school,work,is_place,has_room")->where("( is_place=1 AND shangquan in (" .implode(",",$circle) .") OR is_place=2 AND ditie in (".implode(",",$subway).")) AND is_match=2 AND checkoutime>='".$room['start_date']."'")->select();
+            //这里先不限制入住日期了，以后用户多了要开始限制
+            $mymatchuser = M('user')->field("id,name,avatar,sex,shangquan,ditie,budget,school,work,is_place,has_room")->where("( is_place=1 AND shangquan in (" .implode(",",$circle) .") OR is_place=2 AND ditie in (".implode(",",$subway).")) AND is_match=2 ")->select();
             //先匹配宋立军
-            // $mymatchuser = M('user')->field("id,name,avatar,sex,shangquan,ditie,checkintime,school,work,is_place,has_room")->where("id=1336")->select();
-            // xformatOutPutJsonData('test1', $mymatchuser, M()->getLastSql());
+            // $mymatchuser = M('user')->field("id,name,avatar,sex,shangquan,ditie,school,work,is_place,has_room")->where("id=1336")->select();
+            // xformatOutPutJsonData('test1', $mymatchuser, $shanchumingdan);
             foreach ($mymatchuser as $key => $value) {
                 //删除我拉黑的房客
                 $index = array_search($value['id'],$shanchumingdan);
+                // xformatOutPutJsonData('test3', $index, $index !== FALSE);
                 if($index !== FALSE)
                     continue;
                 //获取该租客的位置
@@ -496,15 +545,21 @@ class LandlordController extends HomeBaseController {
                     $value['zuzhupos'] = $hisPosition['line'] . $hisPosition['station'];
                 }
                 $distance = A('Home/Index')->GetDistance(floatval($room['lon']),floatval($room['lat']),floatval($hisPosition['lon']),floatval($hisPosition['lat']));
+                // $value['fraction'][] = $distance;
                 //15公里以内分数为正，15公里以外分数为负，如果是一条线上的再加分
-                if($distance>20)
+                if($distance>20){
+                    //这里先不限制最大距离了，超过20公里就算0分，以后用户多了要开始限制
+                    // $fraction = 0;
+                    // $value['fraction'][] = 0;
                     continue;
-                else if($distance>15)
-                    $distance = 15;
-                // $fraction = bcmul(10-$distance, $weight['position']);
-                //10公里分数为0，0公里分数为满分，如果是一条线上的再加分
-                $fraction = $this->getExpValue(0,$weight['distance'],15,0.1,$distance);
-                // $value['fraction'][] = $this->getExpValue(0,$weight['distance'],15,0.1,$distance);
+                }else {
+                    if($distance>15)
+                        $distance = 15;
+                    // $fraction = bcmul(10-$distance, $weight['position']);
+                    //10公里分数为0，0公里分数为满分，如果是一条线上的再加分
+                    $fraction = $this->getExpValue(0,$weight['distance'],15,0.1,$distance);
+                    // $value['fraction'][] = $this->getExpValue(0,$weight['distance'],15,0.1,$distance);
+                }
                 // xformatOutPutJsonData('test3', $fraction, $distance);
                 if (intval($value['is_place']) == 2){
                     $index = array_search($value['ditie'],$subways_line);
@@ -560,13 +615,14 @@ class LandlordController extends HomeBaseController {
                 if($value['pipeidu']>=100){
                     $value['pipeidu'] = 99.99;
                 }
+                //这里限制最低匹配度大于0
                 if($value['pipeidu']>0){
                     if($value['has_room']==1)
                         $value['labels'][] = '有房';
                     else
                         $value['labels'][] = '无房';
                     // $value['labels'][] = '已收藏';
-                    unset($value['checkintime']);
+                    // unset($value['checkintime']);
                     unset($value['school']);
                     unset($value['work']);
                     unset($value['has_room']);
@@ -627,7 +683,7 @@ class LandlordController extends HomeBaseController {
             }
             xformatOutPutJsonData('success', array_slice($result,0,intval($Data['count'])), count($result));
         } else {
-            xformatOutPutJsonData('success', 1, '未知错误');
+            xformatOutPutJsonData('success', 1, '没有合适的租客');
         }
     }
     
@@ -672,7 +728,7 @@ class LandlordController extends HomeBaseController {
         if($heimingdan){
             $shanchumingdan = json_decode($heimingdan['dislikehouse'],true);
         }else{
-
+            // $shanchumingdan ='';
         }
         foreach ($roominfo as $k => $room) {
             //计算与每个房源相似的房源展示
@@ -693,6 +749,7 @@ class LandlordController extends HomeBaseController {
             foreach ($danke as $key => $value) {
                 //删除我拉黑的房源
                 $index = array_search($value['room_id'],explode(",",$shanchumingdan['danke']));
+                // xformatOutPutJsonData("test", $index !== FALSE, $index);
                 if($index !== FALSE)
                     continue;
                 $value['brand'] = '蛋壳';
