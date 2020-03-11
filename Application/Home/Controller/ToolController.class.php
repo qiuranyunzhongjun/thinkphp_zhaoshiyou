@@ -252,11 +252,61 @@ class ToolController extends HomeBaseController {
         $wx_member = M('user')->field('id')->select();
         $count = 0;
         foreach($wx_member as $key=>$value){
-            $update['userToken'] = A('Home/Index')->getTokenCode($value['id']);
+            $update['userToken'] = A('Home/Index')->getTokenCode($value['id'],"roomer");
             $res = M('user')->where('id='.$value['id'])->save($update);
             if($res)
                 $count ++;
         }
-        xformatOutPutJsonData('success', '', $count);
+        
+        $wx_member = M('landlord')->field('id')->select();
+        $count1 = 0;
+        foreach($wx_member as $key=>$value){
+            $update['userToken'] = A('Home/Index')->getTokenCode($value['id'],"landlord");
+            $res = M('landlord')->where('id='.$value['id'])->save($update);
+            if($res)
+                $count1 ++;
+        }
+        xformatOutPutJsonData('success', $count1, $count);
+    }
+
+    //清除服务器中违法违规的图片和文字
+    public function contentCheck(){
+        $Data = I('get.');
+        $wx_member = M('user')->field('id,name,avatar,personal')->where('id>='.$Data['start']." AND id<".($Data['start']+100))->select();
+        // $wx_member = M('user')->field('id,name,avatar,personal')->select();
+        // $wx_room = M('room')->field('id,xiaoqu,description,images')->select();
+        $count = 0;
+        foreach($wx_member as $key=>$value){
+            $name = base64_decode($value['name']);
+            $description = $value['personal'];
+            $msgCheck = A('Home/Chat')->messageCheck($name);
+            if($msgCheck['errcode']==87014){
+                xformatOutPutJsonData('test', $value['id'].'昵称', $name);
+            }
+            $msgCheck = A('Home/Chat')->messageCheck($description);
+            if($msgCheck['errcode']==87014){
+                xformatOutPutJsonData('test', $value['id'].'个人介绍', $description);
+            }
+            if(strpos($value['avatar'],"0_") === 0)
+                continue;
+            $avatar = str_replace('https://www.ten-mate.com','.',$value['avatar']);
+            xformatOutPutJsonData('test', $value['avatar'], $avatar);
+            // // $avatar = file_get_contents($value['avatar']);
+            // $imgCheck = A('Home/Chat')->mediaCheck($avatar);
+            // $imgCheck = json_decode(stripslashes($imgCheck));
+            // $imgCheck = json_decode(json_encode($imgCheck), true);
+            // if($imgCheck['errcode']==87014){
+            //     xformatOutPutJsonData('test', $value['avatar'], "有违法违规内容");
+            //     $filename = "./Public/landlordRoomImg/landlord_TMP/".$openid. '.jpg';
+            //     file_put_contents($filename, $avatar);
+            // }
+            // $ext = explode('.',$value['avatar']);
+            // // xformatOutPutJsonData($value['avatar'], $ext, $ext[3]);
+            // $update['avatar'] = 'https://www.ten-mate.com/Public/Avatar/0_'.$value['openid'].'.'.$ext[3];
+            // $res = M('user')->where('id='.$value['id'])->save($update);
+            // if($res)
+            //     $count ++;
+        }
+        xformatOutPutJsonData('success', $Data['start']+100, $count);
     }
 }

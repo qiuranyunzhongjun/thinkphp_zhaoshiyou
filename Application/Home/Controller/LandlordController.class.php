@@ -98,18 +98,24 @@ class LandlordController extends HomeBaseController {
         if ($Data['token'] !== S('user_landlord' . $Data['id'])) {
             xformatOutPutJsonData('fail', '', '网络错误2！');
         }
-        $map['name'] = $Data['name'];
-        $map['work'] = $Data['work'];
-        $map['birth'] = $Data['birth'];
-        $map['IDcard'] = $Data['idCard'];
-        $map['phone'] = $Data['phone'];
-        $map['is_match'] = $Data['is_match'];
-        $res = M('landlord')->where('id=' . $uid)->save($map);
-        if ($res !== FALSE) {
-            xformatOutPutJsonData('success', $res, '');
-        }
-        else{
-            xformatOutPutJsonData('fail', $res, '');
+        //检查名字是否合法
+        $msgCheck = A('Home/Chat')->messageCheck($Data['name']);
+        if($msgCheck['errcode']!=87014){
+            $map['name'] = $Data['name'];
+            $map['work'] = $Data['work'];
+            $map['age'] = $Data['age'];
+            $map['birth'] = $Data['birth'];
+            $map['IDcard'] = $Data['idCard'];
+            $map['phone'] = $Data['phone'];
+            $map['is_match'] = $Data['is_match'];
+            $res = M('landlord')->where('id=' . $uid)->save($map);
+            if ($res !== FALSE) {
+                xformatOutPutJsonData('success', $res, '');
+            }else{
+                xformatOutPutJsonData('fail', $res, '');
+            }
+        }else{
+            xformatOutPutJsonData('fail', 1, "姓名含有违法违规内容");
         }
     }
         
@@ -126,10 +132,11 @@ class LandlordController extends HomeBaseController {
             xformatOutPutJsonData('fail', '', '网络错误2！');
         }
         //获取职业
-        $work = M('work')->field('id,w_name')->select();
+        $data['works'] = M('work')->field('id,w_name')->select();
+        $data['ages']= M('age')->field('aid as id,a_name')->order('aid')->select();
         //获取房东信息
-        $landlord = M('landlord')->field('name,birth,phone,work,IDcard')->where('id=' . $uid)->find();
-        xformatOutPutJsonData('success', $work, $landlord);
+        $landlord = M('landlord')->field('name,age,phone,work,IDcard')->where('id=' . $uid)->find();
+        xformatOutPutJsonData('success', $data, $landlord);
     }
     //获取房东的房屋信息
     public function getRoomInfo(){
@@ -223,7 +230,7 @@ class LandlordController extends HomeBaseController {
             if($Data['roomid']==0){
                 $config = array(
                     'rootPath' => "./Public/landlordRoomImg/landlord_TMP/",
-                    'exts' => array('jpg', 'gif', 'png', 'jpeg', 'bmp'),
+                    'exts' => array('jpg', 'png', 'jpeg', 'bmp'),
                     'autoSub' => true,
                     'saveName' => $uid.'-'.$Data['index'].'-'.time(),
                     'replace' => true,
@@ -239,7 +246,7 @@ class LandlordController extends HomeBaseController {
             }else{
                 $config = array(
                     'rootPath' => "./Public/landlordRoomImg/landlord_TMP/",
-                    'exts' => array('jpg', 'gif', 'png', 'jpeg', 'bmp'),
+                    'exts' => array('jpg', 'png', 'jpeg', 'bmp'),
                     'autoSub' => true,
                     'saveName' => $uid.'-'.$Data['roomid'].'-'.$Data['index'].'-'.time(),
                     'replace' => true,
@@ -285,6 +292,7 @@ class LandlordController extends HomeBaseController {
                             'visit_time' => $Data['visit_time'],
                             'start_date' => $Data['start_date'],
                             'floor_type' => $Data['floor_type'],
+                            'rent_type' => $Data['rent_type'],
                             'floor_count' => $Data['floor_count'],
                             'description' => $Data['description'],
                             'city' => $Data['city'],
@@ -417,6 +425,7 @@ class LandlordController extends HomeBaseController {
                             'visit_time' => $Data['visit_time'],
                             'start_date' => $Data['start_date'],
                             'floor_type' => $Data['floor_type'],
+                            'rent_type' => $Data['rent_type'],
                             'floor_count' => $Data['floor_count'],
                             'description' => $Data['description'],
                             'city' => $Data['city'],
@@ -539,10 +548,18 @@ class LandlordController extends HomeBaseController {
                 //获取该租客的位置
                 if (intval($value['is_place']) == 1) {
                     $hisPosition = M('circles')->field('city_name as city,area_name,name,lon,lat')->where('id='. $value['shangquan'])->find();
-                    $value['zuzhupos'] = $hisPosition['area_name'] . $hisPosition['name'];
+                    if($hisPosition){
+                        $value['zuzhupos'] = $hisPosition['area_name'] . $hisPosition['name'];
+                    }else{
+                        $value['zuzhupos'] = "附件商圈不明确";
+                    }
                 }else{
                     $hisPosition = M('subways')->field('city,line,station,lon,lat')->where('id='. $value['ditie'])->find();
-                    $value['zuzhupos'] = $hisPosition['line'] . $hisPosition['station'];
+                    if($hisPosition){
+                        $value['zuzhupos'] = $hisPosition['line'] . $hisPosition['station'];
+                    }else{
+                        $value['zuzhupos'] = "附近地铁不明确";
+                    }
                 }
                 $distance = A('Home/Index')->GetDistance(floatval($room['lon']),floatval($room['lat']),floatval($hisPosition['lon']),floatval($hisPosition['lat']));
                 // $value['fraction'][] = $distance;
@@ -741,9 +758,13 @@ class LandlordController extends HomeBaseController {
             $sqlCondition = "lon<".($room['lon']+0.1). "AND lon>".($room['lon']-0.1) . "AND lat<".($room['lat']+0.09)." AND lat>" .($room['lat']-0.09);
             // xformatOutPutJsonData('test', $room['type2'], $room);
             //我的房间是几室几卫
-            $myShiWei = intval(explode("室",$room['type2'])[0])/intval(explode("厅",$room['type2'])[1]);
+            if(intval(explode("厅",$room['type2'])[1])==0)
+                $myShiWei = 100;
+            else $myShiWei = intval(explode("室",$room['type2'])[0])/intval(explode("厅",$room['type2'])[1]);
             //我的房间是几室几厅
-            $myShiTing = intval(explode("室",$room['type2'])[0])/intval(explode("室",$room['type2'])[1]);
+            if(intval(explode("室",$room['type2'])[1])==0)
+                $myShiTing = 100;
+            else $myShiTing = intval(explode("室",$room['type2'])[0])/intval(explode("室",$room['type2'])[1]);
             //蛋壳公寓的房源
             $danke = M('danke')->field('id,room_title as title,lon, lat,room_subway as transport,feature,normal_price,promotion_price,room_id,room_size as size,room_type,room_floor,room_image_link, rent_whole')->where($sqlCondition)->limit(10)->select();
             foreach ($danke as $key => $value) {
@@ -783,7 +804,10 @@ class LandlordController extends HomeBaseController {
                 $value['type2'] = explode(",",$value['room_type'])[0];
                 //n室m厅：n/m > 相等的加分
                 $shiWeiNum = explode("室",$value['type2']);
-                if(abs(intval($shiWeiNum[0])/intval($shiWeiNum[1] - $myShiWei))<0.1){
+                if(intval($shiWeiNum[1])==0)
+                    $thisShiWeiNum = 100;
+                else $thisShiWeiNum =intval($shiWeiNum[0])/intval($shiWeiNum[1]);
+                if(abs($thisShiWeiNum - $myShiWei)<0.1){
                     $fraction += $weight['huxing'];
                     // $value['fraction'][] = $weight['huxing'];
                 }
@@ -852,7 +876,10 @@ class LandlordController extends HomeBaseController {
                 }
                 //n室m厅：n/m > 相等的加分
                 $shiTingNum = explode("室",$value['type2']);
-                if(abs(intval($shiTingNum[0])/intval($shiTingNum[1] - $myShiTing))<0.2){
+                if(intval($shiTingNum[1])==0)
+                    $thisShiTing = 100;
+                else $thisShiTing = intval($shiTingNum[0])/intval($shiTingNum[1]);
+                if(abs($thisShiTing - $myShiTing)<0.2){
                     $fraction += $weight['huxing'];
                     // $value['fraction'][] = $weight['huxing'];
                 }
@@ -915,8 +942,12 @@ class LandlordController extends HomeBaseController {
                 }
                 //n室m厅：n/m > 相等的加分
                 // xformatOutPutJsonData('test', $myShiWei, explode("室",$lv['type2']));
-                $hisShiWei = intval(explode("室",$lv['type2'])[0])/intval(explode("厅",$lv['type2'])[1]);
-                $hisShiTing = intval(explode("室",$lv['type2'])[0])/intval(explode("室",$lv['type2'])[1]);
+                if(intval(explode("厅",$lv['type2'])[1])==0)
+                    $hisShiWei = 100;
+                else $hisShiWei = intval(explode("室",$lv['type2'])[0])/intval(explode("厅",$lv['type2'])[1]);
+                if(intval(explode("室",$lv['type2'])[1])==0)
+                    $hisShiTing = 100;
+                else $hisShiTing = intval(explode("室",$lv['type2'])[0])/intval(explode("室",$lv['type2'])[1]);
                 if(abs($hisShiWei-$myShiWei)<0.2){
                     $fraction += $weight['huxing'];
                     // $lv['fraction'][] = $weight['huxing'];
@@ -944,7 +975,7 @@ class LandlordController extends HomeBaseController {
                     if($transport){
                         $lv['transport'] = $transport['line'].$transport['station'].'附近';
                     }else{
-                        $lv['transport'] = '房东未按规定上传附近交通信息';
+                        $lv['transport'] = '房东未上传附近交通信息';
                     }
                     unset($lv['subway']);
                     if($lv['images']!=''){
@@ -991,17 +1022,17 @@ class LandlordController extends HomeBaseController {
             }else{
                 $roominfo[$k]['brand'] ='中介';
             }
-            if($roominfo[$k]['publish']==0){
-                $roominfo[$k]['title'] = $roominfo[$k]['title'].'[已下架]';
-            }
-            unset($roominfo[$k]['publish']);
+            // if($roominfo[$k]['publish']==0){
+            //     $roominfo[$k]['title'] = $roominfo[$k]['title'].'[已下架]';
+            // }
+            // unset($roominfo[$k]['publish']);
             unset($roominfo[$k]['type']);
             $roominfo[$k]['floor'] = $roominfo[$k]['floor'].'层';
             $transport = M('subways')->field('line,station')->where('id='.$roominfo[$k]['subway'])->find();
             if($transport){
                 $roominfo[$k]['transport'] = $transport['line'].$transport['station'].'附近';
             }else{
-                $roominfo[$k]['transport'] = '房东未按规定上传附近交通信息';
+                $roominfo[$k]['transport'] = '房东未上传附近交通信息';
             }
             unset($roominfo[$k]['subway']);
             if($roominfo[$k]['images']!=''){
@@ -1101,7 +1132,7 @@ class LandlordController extends HomeBaseController {
         if (empty($Data['pid'])) {
             xformatOutPutJsonData('fail', '', '网络错误3！');
         }
-        $landlord = M('landlord')->field('id,gender as sex,avatar as touxiang,name,province,city,work,birth')->where('id= '.$Data['pid'])->find();
+        $landlord = M('landlord')->field('id,gender as sex,avatar as touxiang,name,province,city,work,birth,age')->where('id= '.$Data['pid'])->find();
         if($landlord){
             if($landlord['sex']=='1'){
                 $landlord['sex'] = 'man';
@@ -1110,7 +1141,8 @@ class LandlordController extends HomeBaseController {
             }
             $work = M('work')->field('w_name')->where('id=' . $landlord['work'])->find();
             $landlord['work'] = $work['w_name'];
-
+            $age = M('age')->field('a_name')->where('aid=' . $landlord['age'])->find();
+            $landlord['age'] = $age['a_name'];
             if($Data['token'] === S('user_landlord' . $uid)){//房东用户发起的访问
                 $uid = -1 * intval($uid);
             }
@@ -1142,17 +1174,17 @@ class LandlordController extends HomeBaseController {
                 }else{
                     $room['brand'] ='中介';
                 }
-                if($room['publish']==0){
-                    $room['title'] =$room['title'].'已下架';
-                }
-                unset($room['publish']);
+                // if($room['publish']==0){
+                //     $room['title'] =$room['title'].'已下架';
+                // }
+                // unset($room['publish']);
                 unset($room['type']);
                 $room['floor'] = $room['floor'].'层';
                 $transport = M('subways')->field('line,station')->where('id='.$room['subway'])->find();
                 if($transport){
                     $room['transport'] = $transport['line'].$transport['station'].'附近';
                 }else{
-                    $room['transport'] = '房东未按规定上传附近交通信息';
+                    $room['transport'] = '房东未上传附近交通信息';
                 }
                 unset($room['subway']);
                 if($room['images']!=''){
