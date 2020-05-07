@@ -1,0 +1,4 @@
+city budget 数据库全部更新
+user 增加租房所在城市编号和租房位置经纬度，位置描述，最近登陆时间。tool更新用户经纬度和位置描述，所在城市编号     还要改一下登录的方法，保存登陆时间，更新位置，删除unionid,shangquan，is_place
+landlord 增加邮箱 城市 最近登录时间
+landlord_room 增加 publish 到 creat_time 之间的10个字段 city变为int类型  landlord_room 中如果经纬度为0提示不能提交

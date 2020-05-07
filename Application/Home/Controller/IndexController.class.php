@@ -26,7 +26,7 @@ class IndexController extends HomeBaseController {
         $data = I('post.');
         if($data['openid']){
             $map['openid'] = array('eq', $data['openid']);
-            $wx_member = M('user')->field('id,openid,name,avatar,is_match,phone,is_place,shangquan,ditie')->where($map)->find();
+            $wx_member = M('user')->field('id,openid,name,avatar,is_match,phone,lon,lat,address as pos')->where($map)->find();
             if($wx_member){
                 if(!$wx_member['avatar']||$wx_member['avatar']==''){
                     $file = file_get_contents($data['avatar']);
@@ -34,26 +34,24 @@ class IndexController extends HomeBaseController {
                     $im = file_put_contents($filename, $file);
                     if($im){
                         $update['avatar'] = str_replace('http','https',IMG_PATH). '/Public/Avatar/0_'.$openid. '.jpg';
-                        M('user')->where('id='.$wx_member['id'])->save($update);
                     }
                 }
+                $update['last_sign'] = date('Y-m-d', time());
+                M('user')->where('id='.$wx_member['id'])->save($update);
                 $wx_member['userToken'] = S('user_' . $wx_member['id']);
                 // S("landlord".$openid, $wx_member);
                 //获取我的位置
-                if ($wx_member['is_place'] == 1) {
-                    $myPosition = M('circles')->field('city_name as city,lon,lat,area_name,name')->where('id='. $wx_member['shangquan'])->find();
-                    $wx_member['lon'] = $myPosition['lon'];
-                    $wx_member['lat'] = $myPosition['lat'];
-                    $wx_member['pos'] = $myPosition['area_name'].$myPosition['name'];
-                }else if ($wx_member['is_place'] == 2) {
-                    $myPosition = M('subways')->field('city,lon,lat,line,station')->where('id='. $wx_member['ditie'])->find();
-                    $wx_member['lon'] = $myPosition['lon'];
-                    $wx_member['lat'] = $myPosition['lat'];
-                    $wx_member['pos'] = $myPosition['line'].$myPosition['station'];
-                }
-                unset($wx_member['is_place']);
-                unset($wx_member['shangquan']);
-                unset($wx_member['ditie']);
+                // if ($wx_member['is_place'] == 1) {
+                //     $myPosition = M('circles')->field('city_name as city,lon,lat,area_name,name')->where('id='. $wx_member['shangquan'])->find();
+                //     $wx_member['lon'] = $userinfo['lon'];
+                //     $wx_member['lat'] = $userinfo['lat'];
+                //     $wx_member['pos'] = $myPosition['area_name'].$myPosition['name'];
+                // }else if ($wx_member['is_place'] == 2) {
+                //     $myPosition = M('subways')->field('city,lon,lat,line,station')->where('id='. $wx_member['ditie'])->find();
+                //     $wx_member['lon'] = $userinfo['lon'];
+                //     $wx_member['lat'] = $userinfo['lat'];
+                //     $wx_member['pos'] = $myPosition['line'].$myPosition['station'];
+                // }
                 $wx_member['nickname'] = base64_decode($wx_member['name']);
                 // $wx_member['session_key'] = S($openid . '_key');
                 xformatOutPutJsonData('success', $wx_member, '');
@@ -71,7 +69,7 @@ class IndexController extends HomeBaseController {
             $map = array();
             $map['openid'] = array('eq', $openid);
 //            $map['is_login'] = array('eq', 1);
-            $wx_member = M('user')->field('id,openid,name,avatar,is_match,phone,is_place,shangquan,ditie')->where($map)->find();
+            $wx_member = M('user')->field('id,openid,name,avatar,is_match,phone,lon,lat,address as pos')->where($map)->find();
             if ($wx_member == false) {
                 $file = file_get_contents($data['avatar']);
                 $filename = './Public/Avatar/0_' .$openid. '.jpg';
@@ -99,6 +97,7 @@ class IndexController extends HomeBaseController {
                 $userToken = $this->getTokenCode($userid,"roomer");
                 $inserData['userToken'] = $userToken;
                 $update['userToken'] = $userToken;
+                $update['last_sign'] = date('Y-m-d', time());
                 M('user')->where('id='.$userid)->save($update);
                 // S($openid, $inserData);
                 xformatOutPutJsonData('success', $inserData, '');
@@ -113,26 +112,28 @@ class IndexController extends HomeBaseController {
                     $im = file_put_contents($filename, $file);
                     if($im){
                         $update['avatar'] = str_replace('http','https',IMG_PATH). '/Public/Avatar/0_'.$openid. '.jpg';
-                        M('user')->where('id='.$wx_member['id'])->save($update);
+                        // M('user')->where('id='.$wx_member['id'])->save($update);
                     }
                 }
+                $update['last_sign'] = date('Y-m-d', time());
+                M('user')->where('id='.$wx_member['id'])->save($update);
                 $wx_member['userToken'] = S('user_' . $wx_member['id']);
                 $wx_member['nickname'] = base64_decode($wx_member['name']);
                 //获取我的位置
-                if ($wx_member['is_place'] == 1) {
-                    $myPosition = M('circles')->field('city_name as city,lon,lat,area_name,name')->where('id='. $wx_member['shangquan'])->find();
-                    $wx_member['lon'] = $myPosition['lon'];
-                    $wx_member['lat'] = $myPosition['lat'];
-                    $wx_member['pos'] = $myPosition['area_name'].$myPosition['name'];
-                }else if ($wx_member['is_place'] == 2) {
-                    $myPosition = M('subways')->field('city,lon,lat,line,station')->where('id='. $wx_member['ditie'])->find();
-                    $wx_member['lon'] = $myPosition['lon'];
-                    $wx_member['lat'] = $myPosition['lat'];
-                    $wx_member['pos'] = $myPosition['line'].$myPosition['station'];
-                }
-                unset($wx_member['is_place']);
-                unset($wx_member['shangquan']);
-                unset($wx_member['ditie']);
+                // if ($wx_member['is_place'] == 1) {
+                //     $myPosition = M('circles')->field('city_name as city,lon,lat,area_name,name')->where('id='. $wx_member['shangquan'])->find();
+                //     $wx_member['lon'] = $userinfo['lon'];
+                //     $wx_member['lat'] = $userinfo['lat'];
+                //     $wx_member['pos'] = $myPosition['area_name'].$myPosition['name'];
+                // }else if ($wx_member['is_place'] == 2) {
+                //     $myPosition = M('subways')->field('city,lon,lat,line,station')->where('id='. $wx_member['ditie'])->find();
+                //     $wx_member['lon'] = $userinfo['lon'];
+                //     $wx_member['lat'] = $userinfo['lat'];
+                //     $wx_member['pos'] = $myPosition['line'].$myPosition['station'];
+                // }
+                // unset($wx_member['is_place']);
+                // unset($wx_member['shangquan']);
+                // unset($wx_member['ditie']);
                 // S($openid, $wx_member);
                 xformatOutPutJsonData('success', $wx_member, '');
             }
@@ -211,6 +212,32 @@ class IndexController extends HomeBaseController {
 //         }
 //         xformatOutPutJsonData('fail', '', '网络错误123！');
 //     }
+
+
+    
+    /**
+     * 海外地址解析
+     * @param string address
+     * @param string region 所在城市 例如'Berlin'
+    */
+    public function overseaGeocoder(){
+        $Data = I('get.');
+        $address = $Data['address'];
+        $region = $Data['region'];
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, "http://apis.map.qq.com/ws/geocoder/v1/?address=". urlencode($address) . "&region=" . urlencode($region)."&key=" .urlencode("CFDBZ-GXW6U-CGSVR-2RA4C-4R5A3-L6BB3")."&oversea=".urlencode(1)."&language=".urlencode("cn"));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        $data = curl_exec($ch);
+        //$url = "https://apis.map.qq.com/ws/geocoder/v1?address=" . $address . "&region=" . $region."&key=CFDBZ-GXW6U-CGSVR-2RA4C-4R5A3-L6BB3&oversea=1&language=cn";
+        // xformatOutPutJsonData('success', $address, $url);
+        //$url = stripslashes($url);//删除自动添加的反斜杠
+        //xformatOutPutJsonData('test', stripslashes($url), $url);
+        //$res = A('Home/Chat')->request_get(rawurlencode($url));
+        //dump($res);
+        xformatOutPutJsonData('success', $data, "");
+    }
+
+
 //修改用户性别
     public function getsex() {
         $data = I('get.');
@@ -582,265 +609,270 @@ class IndexController extends HomeBaseController {
         if ($Data['token'] !== S('user_' . $Data['id'])) {
             xformatOutPutJsonData('fail', '', '网络错误2！');
         }
-        if ($Data['status'] == 'shangquan') {
-            $map['shangquan'] = $Data['addid'];
-            $map['is_place'] = 1;
-            $myPosition = M('circles')->field('area_name,name,lon,lat')->where('id='. $Data['addid'])->find();
-            $myPosition['name'] = $myPosition['area_name'].$myPosition['name'];
-            unset($myPosition['area_name']);
-        } else {
-            $map['ditie'] = $Data['addid'];
-            $map['is_place'] = 2; //当前用户选择的是地铁 默认是商圈
-            $myPosition = M('subways')->field('line,station,lon,lat')->where('id='. $Data['addid'])->find();
-            $myPosition['name'] = $myPosition['line'].$myPosition['station'];
-            unset($myPosition['line']);
-            unset($myPosition['station']);
-        }
-        $info = M('user')->field('is_match')->where('id=' . $uid)->find();
-        if($info['is_match']==0){
-            $map['is_match'] = 1;
-        }
+        $map['city_no'] = $Data['city'];
+        $map['lon'] = $Data['lon'];
+        $map['lat'] = $Data['lat'];
+        $map['address'] = $Data['address'];
+        $map['is_match'] = $Data['is_match'];
+        // if ($Data['status'] == 'shangquan') {
+        //     $map['shangquan'] = $Data['addid'];
+        //     $map['is_place'] = 1;
+        //     $myPosition = M('circles')->field('area_name,name,lon,lat')->where('id='. $Data['addid'])->find();
+        //     $myPosition['name'] = $myPosition['area_name'].$myPosition['name'];
+        //     unset($myPosition['area_name']);
+        // } else {
+        //     $map['ditie'] = $Data['addid'];
+        //     $map['is_place'] = 2; //当前用户选择的是地铁 默认是商圈
+        //     $myPosition = M('subways')->field('line,station,lon,lat')->where('id='. $Data['addid'])->find();
+        //     $myPosition['name'] = $myPosition['line'].$myPosition['station'];
+        //     unset($myPosition['line']);
+        //     unset($myPosition['station']);
+        // }
+        // $info = M('user')->field('is_match')->where('id=' . $uid)->find();
+        // if($info['is_match']==0){
+        //     $map['is_match'] = 1;
+        // }
         $res = M('user')->where('id=' . $uid)->save($map);
         if ($res !== FALSE) {
-            xformatOutPutJsonData('success', $myPosition, '');
+            xformatOutPutJsonData('success', $res, '');
         }
     }
 
 //初级匹配
-    public function primaryMatch() {
-        $Data = I('get.');
-        $uid = $Data['id'];
-//        $uid = 782;
-        if (empty($uid)) {
-            xformatOutPutJsonData('fail', '', '网络错误1！');
-        }
-        if ($Data['token'] !== S('user_' . $uid)) {
-            xformatOutPutJsonData('fail', '', '网络错误2！');
-        }
-        //规则分数
-        $corresponding = $this->getMatchNum();
-        //获取用户想找的室友
-        $userpm = M('user_primary_matching')->field('sex,pet,smoking,bedlate,lovers')->where('uid=' . $uid)->find();
-        //当前用户基本信息
-        $userinfo = M('user')->where('id=' . $uid)->find();
-        //符合初级匹配条件的用户
-        if($userpm['sex']!=3)
-            $map['a.sex'] = $userpm['sex'];
-        if($userpm['pet']==0)
-            $map['a.pet'] = 0;
-        if($userpm['smoking']==0)
-            $map['a.smoking'] = 0;
-        if($userpm['bedlate']==0)
-            $map['a.bedlate'] = 0;
-        if($userpm['lovers']==0)
-            $map['a.lovers'] = 0;
-//        $map['a.id'] != $uid;
-        $map['a.id'] = array('neq', $uid);
-        $mymatchuser = M('user')->alias('a')
-                ->field('a.*,b.sex as b_sex,b.pet as b_pet,b.smoking as b_smoking,b.bedlate as b_bedlate,b.lovers as b_lovers')
-                ->join('LEFT JOIN xqwl_user_primary_matching b ON a.id =b.uid')
-                ->where($map)
-                ->select();
-        //var_dump(M()->getLastSql());
-        //删除那些我不满足对方需求的结果
-        foreach ($mymatchuser as $key => $value) {
-            if(($value['b_sex']==3||$value['b_sex']==$userinfo['sex'])//性别匹配
-                &&($value['b_pet']==1||$value['b_pet']==0)//匹配宠物
-                &&($value['b_smoking']==1||$value['b_smoking']==0)//匹配抽烟
-                &&($value['b_bedlate']==1||$value['b_bedlate']==0)//匹配晚睡
-                &&($value['b_lovers']==1||$value['b_lovers']==0))//匹配情侣
-                $matchuser[] = $value;
-        }
-        //dump($matchuser);
+//     public function primaryMatch() {
+//         $Data = I('get.');
+//         $uid = $Data['id'];
+// //        $uid = 782;
+//         if (empty($uid)) {
+//             xformatOutPutJsonData('fail', '', '网络错误1！');
+//         }
+//         if ($Data['token'] !== S('user_' . $uid)) {
+//             xformatOutPutJsonData('fail', '', '网络错误2！');
+//         }
+//         //规则分数
+//         $corresponding = $this->getMatchNum();
+//         //获取用户想找的室友
+//         $userpm = M('user_primary_matching')->field('sex,pet,smoking,bedlate,lovers')->where('uid=' . $uid)->find();
+//         //当前用户基本信息
+//         $userinfo = M('user')->where('id=' . $uid)->find();
+//         //符合初级匹配条件的用户
+//         if($userpm['sex']!=3)
+//             $map['a.sex'] = $userpm['sex'];
+//         if($userpm['pet']==0)
+//             $map['a.pet'] = 0;
+//         if($userpm['smoking']==0)
+//             $map['a.smoking'] = 0;
+//         if($userpm['bedlate']==0)
+//             $map['a.bedlate'] = 0;
+//         if($userpm['lovers']==0)
+//             $map['a.lovers'] = 0;
+// //        $map['a.id'] != $uid;
+//         $map['a.id'] = array('neq', $uid);
+//         $mymatchuser = M('user')->alias('a')
+//                 ->field('a.*,b.sex as b_sex,b.pet as b_pet,b.smoking as b_smoking,b.bedlate as b_bedlate,b.lovers as b_lovers')
+//                 ->join('LEFT JOIN xqwl_user_primary_matching b ON a.id =b.uid')
+//                 ->where($map)
+//                 ->select();
+//         //var_dump(M()->getLastSql());
+//         //删除那些我不满足对方需求的结果
+//         foreach ($mymatchuser as $key => $value) {
+//             if(($value['b_sex']==3||$value['b_sex']==$userinfo['sex'])//性别匹配
+//                 &&($value['b_pet']==1||$value['b_pet']==0)//匹配宠物
+//                 &&($value['b_smoking']==1||$value['b_smoking']==0)//匹配抽烟
+//                 &&($value['b_bedlate']==1||$value['b_bedlate']==0)//匹配晚睡
+//                 &&($value['b_lovers']==1||$value['b_lovers']==0))//匹配情侣
+//                 $matchuser[] = $value;
+//         }
+//         //dump($matchuser);
 
-        //获取我的位置
-        if ($userinfo['is_place'] == 1) {
-            $myPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $userinfo['shangquan'])->find();
-        }else{
-            $myPosition = M('subways')->field('city,lon,lat')->where('id='. $userinfo['ditie'])->find();
-        }
-        //设置不同城市权重
-        $PosWeight = M('city')->field('city_score')->where('c_name="'.$myPosition['city'].'"')->find();
+//         //获取我的位置
+//         if ($userinfo['is_place'] == 1) {
+//             $myPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $userinfo['shangquan'])->find();
+//         }else{
+//             $myPosition = M('subways')->field('city,lon,lat')->where('id='. $userinfo['ditie'])->find();
+//         }
+//         //设置不同城市权重
+//         $PosWeight = M('city')->field('city_score')->where('c_name="'.$myPosition['city'].'"')->find();
 
-        foreach ($matchuser as $key => $value) {
-            $fraction = 0;
-            if ($value['is_place'] == 1) {
-                $hisPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $value['shangquan'])->find();
-            }else{
-                $hisPosition = M('subways')->field('city,lon,lat')->where('id='. $value['ditie'])->find();
-            }
+//         foreach ($matchuser as $key => $value) {
+//             $fraction = 0;
+//             if ($value['is_place'] == 1) {
+//                 $hisPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $value['shangquan'])->find();
+//             }else{
+//                 $hisPosition = M('subways')->field('city,lon,lat')->where('id='. $value['ditie'])->find();
+//             }
 
-            //租住城市不一致
-            if($myPosition['city']!=$hisPosition['city'])
-                continue;
-            $distance = $this->GetDistance(floatval($hisPosition['lon']),floatval($hisPosition['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+//             //租住城市不一致
+//             if($myPosition['city']!=$hisPosition['city'])
+//                 continue;
+//             $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
            
-            //10公里以内分数为正，10公里以外分数为负
-            $fraction = bcmul(10-$distance, $PosWeight['city_score'])/10;
-            // if($fraction<-150){
-            //     $fraction=-150;
-            // }
-            // if($value['id']==1877)
-            //     xformatOutPutJsonData($fraction,$hisPosition, $myPosition);
-            //我的最早入住时间
-            $u_longtime = strtotime($userinfo['checkintime']);
-            //我的最晚入住时间
-            $u_nighttime = strtotime($userinfo['checkoutime']);
-            //匹配最早入住时间
-            $p_longtime = strtotime($value['checkintime']);
-            //匹配最晚入住时间
-            $p_nighttime = strtotime($value['checkoutime']);
-            //计算交集 先计算交集是否大于7天或者小于7天 满足这俩条件的任何一个在进行匹配租房时长
-            if ($u_longtime < $p_longtime && $u_nighttime <= $p_nighttime) {
-                $time = $this->gettimeDifference($u_nighttime, $p_longtime);
-                if ($time < 7 && $time > 0) {
-//                    $fraction+= 30;
-                    $fraction+= $corresponding['enancytime'];
-                } elseif ($time >= 7) {
-//                    $fraction+= 50;
-                    $fraction+= $corresponding['q_enancytime'];
-                }
-            } elseif ($u_longtime > $p_longtime && $u_nighttime >= $p_nighttime) {
-                $time = $this->gettimeDifference($p_nighttime, $u_longtime);
-                if ($time < 7 && $time > 0) {
-//                    $fraction+= 30;
-                    $fraction+= $corresponding['enancytime'];
-                } elseif ($time >= 7) {
-//                    $fraction+= 50;
-                    $fraction+=$corresponding['q_enancytime'];
-                }
-            } elseif ($u_longtime >$p_longtime && $u_nighttime < $p_nighttime) {
-                $time = $this->gettimeDifference($u_nighttime, $u_longtime);
-                    if ($time < 7 && $time > 0) {
-    //                    $fraction+= 30;
-                        $fraction+= $corresponding['enancytime'];
-                    } elseif ($time >= 7) {
-    //                    $fraction+= 50;
-                        $fraction+= $corresponding['q_enancytime'];
+//             //10公里以内分数为正，10公里以外分数为负
+//             $fraction = bcmul(10-$distance, $PosWeight['city_score'])/10;
+//             // if($fraction<-150){
+//             //     $fraction=-150;
+//             // }
+//             // if($value['id']==1877)
+//             //     xformatOutPutJsonData($fraction,$hisPosition, $myPosition);
+//             //我的最早入住时间
+//             $u_longtime = strtotime($userinfo['checkintime']);
+//             //我的最晚入住时间
+//             $u_nighttime = strtotime($userinfo['checkoutime']);
+//             //匹配最早入住时间
+//             $p_longtime = strtotime($value['checkintime']);
+//             //匹配最晚入住时间
+//             $p_nighttime = strtotime($value['checkoutime']);
+//             //计算交集 先计算交集是否大于7天或者小于7天 满足这俩条件的任何一个在进行匹配租房时长
+//             if ($u_longtime < $p_longtime && $u_nighttime <= $p_nighttime) {
+//                 $time = $this->gettimeDifference($u_nighttime, $p_longtime);
+//                 if ($time < 7 && $time > 0) {
+// //                    $fraction+= 30;
+//                     $fraction+= $corresponding['enancytime'];
+//                 } elseif ($time >= 7) {
+// //                    $fraction+= 50;
+//                     $fraction+= $corresponding['q_enancytime'];
+//                 }
+//             } elseif ($u_longtime > $p_longtime && $u_nighttime >= $p_nighttime) {
+//                 $time = $this->gettimeDifference($p_nighttime, $u_longtime);
+//                 if ($time < 7 && $time > 0) {
+// //                    $fraction+= 30;
+//                     $fraction+= $corresponding['enancytime'];
+//                 } elseif ($time >= 7) {
+// //                    $fraction+= 50;
+//                     $fraction+=$corresponding['q_enancytime'];
+//                 }
+//             } elseif ($u_longtime >$p_longtime && $u_nighttime < $p_nighttime) {
+//                 $time = $this->gettimeDifference($u_nighttime, $u_longtime);
+//                     if ($time < 7 && $time > 0) {
+//     //                    $fraction+= 30;
+//                         $fraction+= $corresponding['enancytime'];
+//                     } elseif ($time >= 7) {
+//     //                    $fraction+= 50;
+//                         $fraction+= $corresponding['q_enancytime'];
                         
-                    }
-            }elseif($u_longtime<$p_longtime && $p_nighttime>$u_nighttime){
-                $time = $this->gettimeDifference($p_nighttime, $p_longtime);
-                    if ($time < 7 && $time > 0) {
-    //                    $fraction+= 30;
-                        $fraction+= $corresponding['enancytime'];
-                    } elseif ($time >= 7) {
-    //                    $fraction+= 50;
-                        $fraction+= $corresponding['q_enancytime'];
+//                     }
+//             }elseif($u_longtime<$p_longtime && $p_nighttime>$u_nighttime){
+//                 $time = $this->gettimeDifference($p_nighttime, $p_longtime);
+//                     if ($time < 7 && $time > 0) {
+//     //                    $fraction+= 30;
+//                         $fraction+= $corresponding['enancytime'];
+//                     } elseif ($time >= 7) {
+//     //                    $fraction+= 50;
+//                         $fraction+= $corresponding['q_enancytime'];
                         
-                    }
-            }elseif($u_longtime==$p_longtime && $u_nighttime==$u_nighttime){
-                $fraction+= $corresponding['q_enancytime'];
-            }
-            //租住时长匹配
-            $score = $this->CalculateRenting($userinfo['tenant_long'], $value['tenant_long']);
-            $fraction += $score;
-            $ratio = bcdiv($fraction, $this->getMatchSum(1,$PosWeight['city_score']), 4) * 100;
-            if($ratio>=100)
-                $ratio = 99.9;
-            $matchuser[$key]['ratio'] = $ratio;
-            $matchuser[$key]['pipeidu'] = $ratio . '%';
-            $matchuser[$key]['address'] = $value['province'];
-            if (empty($value['avatar'])) {
-                if ($value['sex'] == 1) {
-                    $matchuser[$key]['Tximg'] = str_replace('http','https',IMG_PATH) . '/Public/avatar/touxiangnan1.png';
-                } else {
-                    $matchuser[$key]['Tximg'] = str_replace('http','https',IMG_PATH) . '/Public/avatar/touxiangnv1.png';
-                }
-            }
-            // else {
-            //     if ($value['is_true'] == 1) {
-                    $matchuser[$key]['Tximg'] = $value['avatar'];
-            //     } else {
-            //         $matchuser[$key]['Tximg'] = IMG_PATH . $value['avatar'];
-            //     }
-            // }
-            if (empty($value['name'])) {
-                $matchuser[$key]['nickName'] = '【真.无名】';
-            } else {
-                $matchuser[$key]['nickName'] = base64_decode($value['name']);
-            }
-            if ($value['sex'] == 1) {
-                $matchuser[$key]['sex'] = 'man';
-            } else {
-                $matchuser[$key]['sex'] = 'women';
-            }
-            if ($value['b_sex'] == 1) {
-                $matchuser[$key]['lookFor'] = '男室友';
-            } else if ($value['b_sex'] == 2){
-                $matchuser[$key]['lookFor'] = '女室友';
-            }else {
-                $matchuser[$key]['lookFor'] = '男女室友';
-            }
-            unset($fraction);
-        }
-        //根据匹配分数排序
-        $data = $this->arraySort($matchuser, 'ratio', 'desc');
-        $result = array_values($data);
-        $result = array_slice($result,0,30);
-        //匹配分大于0显示
-        foreach ($result as $key => $value) {
-            if ($value['ratio'] > 0) {
-                if (intval($value['is_place']) == 1) {
-                    $xing = M('circles')->field('city_name,area_name,name')->where('id=' . $value['shangquan'])->find();
-                    $value['zuzhupos'] = $xing['area_name'] . $xing['name'];
-                } else {
-                    $xing = M('subways')->field('city,line,station')->where('id=' . $value['ditie'])->find();
-                    $value['zuzhupos'] = $xing['line'] . $xing['station'];
-                }
-                $value['labels'][] = '无房';
+//                     }
+//             }elseif($u_longtime==$p_longtime && $u_nighttime==$u_nighttime){
+//                 $fraction+= $corresponding['q_enancytime'];
+//             }
+//             //租住时长匹配
+//             $score = $this->CalculateRenting($userinfo['tenant_long'], $value['tenant_long']);
+//             $fraction += $score;
+//             $ratio = bcdiv($fraction, $this->getMatchSum(1,$PosWeight['city_score']), 4) * 100;
+//             if($ratio>=100)
+//                 $ratio = 99.9;
+//             $matchuser[$key]['ratio'] = $ratio;
+//             $matchuser[$key]['pipeidu'] = $ratio . '%';
+//             $matchuser[$key]['address'] = $value['province'];
+//             if (empty($value['avatar'])) {
+//                 if ($value['sex'] == 1) {
+//                     $matchuser[$key]['Tximg'] = str_replace('http','https',IMG_PATH) . '/Public/avatar/touxiangnan1.png';
+//                 } else {
+//                     $matchuser[$key]['Tximg'] = str_replace('http','https',IMG_PATH) . '/Public/avatar/touxiangnv1.png';
+//                 }
+//             }
+//             // else {
+//             //     if ($value['is_true'] == 1) {
+//                     $matchuser[$key]['Tximg'] = $value['avatar'];
+//             //     } else {
+//             //         $matchuser[$key]['Tximg'] = IMG_PATH . $value['avatar'];
+//             //     }
+//             // }
+//             if (empty($value['name'])) {
+//                 $matchuser[$key]['nickName'] = '【真.无名】';
+//             } else {
+//                 $matchuser[$key]['nickName'] = base64_decode($value['name']);
+//             }
+//             if ($value['sex'] == 1) {
+//                 $matchuser[$key]['sex'] = 'man';
+//             } else {
+//                 $matchuser[$key]['sex'] = 'women';
+//             }
+//             if ($value['b_sex'] == 1) {
+//                 $matchuser[$key]['lookFor'] = '男室友';
+//             } else if ($value['b_sex'] == 2){
+//                 $matchuser[$key]['lookFor'] = '女室友';
+//             }else {
+//                 $matchuser[$key]['lookFor'] = '男女室友';
+//             }
+//             unset($fraction);
+//         }
+//         //根据匹配分数排序
+//         $data = $this->arraySort($matchuser, 'ratio', 'desc');
+//         $result = array_values($data);
+//         $result = array_slice($result,0,30);
+//         //匹配分大于0显示
+//         foreach ($result as $key => $value) {
+//             if ($value['ratio'] > 0) {
+//                 if (intval($value['is_place']) == 1) {
+//                     $xing = M('circles')->field('city_name,area_name,name')->where('id=' . $value['shangquan'])->find();
+//                     $value['zuzhupos'] = $xing['area_name'] . $xing['name'];
+//                 } else {
+//                     $xing = M('subways')->field('city,line,station')->where('id=' . $value['ditie'])->find();
+//                     $value['zuzhupos'] = $xing['line'] . $xing['station'];
+//                 }
+//                 $value['labels'][] = '无房';
 
-                //删除不需要的属性
-                unset($value['address']);
-                unset($value['age']);
-                unset($value['avatar']);
-                unset($value['b_bedlate']);
-                unset($value['b_lovers']);
-                unset($value['b_pet']);
-                unset($value['b_sex']);
-                unset($value['b_smoking']);
-                unset($value['bedlate']);
-                unset($value['budget']);
-                unset($value['checkintime']);
-                unset($value['checkoutime']);
-                unset($value['city']);
-                unset($value['constellation']);
-                unset($value['customs']);
-                unset($value['ditie']);
-                unset($value['entertainment']);
-                unset($value['gender']);
-                unset($value['hometown']);
-                unset($value['is_match']);
-                unset($value['is_place']);
-                unset($value['is_true']);
-                unset($value['lovers']);
-                unset($value['motion']);
-                unset($value['name']);
-                unset($value['nickname']);
-                unset($value['openid']);
-                unset($value['personality']);
-                unset($value['pet']);
-                unset($value['phone']);
-                unset($value['province']);
-                unset($value['ratio']);
-                unset($value['school']);
-                unset($value['shangquan']);
-                unset($value['smoking']);
-                unset($value['tenant_long']);
-                unset($value['unionid']);
-                unset($value['usertoken']);
-                unset($value['weixin']);
-                unset($value['work']);
-                unset($value['zhiye']);
-                    $res[] = $value;
-            }
-        }
-        if (!empty($result)) {
-            xformatOutPutJsonData('success', $res, '');
-        } else {
-            xformatOutPutJsonData('error', 1, '');
-        }
-    }
+//                 //删除不需要的属性
+//                 unset($value['address']);
+//                 unset($value['age']);
+//                 unset($value['avatar']);
+//                 unset($value['b_bedlate']);
+//                 unset($value['b_lovers']);
+//                 unset($value['b_pet']);
+//                 unset($value['b_sex']);
+//                 unset($value['b_smoking']);
+//                 unset($value['bedlate']);
+//                 unset($value['budget']);
+//                 unset($value['checkintime']);
+//                 unset($value['checkoutime']);
+//                 unset($value['city']);
+//                 unset($value['constellation']);
+//                 unset($value['customs']);
+//                 unset($value['ditie']);
+//                 unset($value['entertainment']);
+//                 unset($value['gender']);
+//                 unset($value['hometown']);
+//                 unset($value['is_match']);
+//                 unset($value['is_place']);
+//                 unset($value['is_true']);
+//                 unset($value['lovers']);
+//                 unset($value['motion']);
+//                 unset($value['name']);
+//                 unset($value['nickname']);
+//                 unset($value['openid']);
+//                 unset($value['personality']);
+//                 unset($value['pet']);
+//                 unset($value['phone']);
+//                 unset($value['province']);
+//                 unset($value['ratio']);
+//                 unset($value['school']);
+//                 unset($value['shangquan']);
+//                 unset($value['smoking']);
+//                 unset($value['tenant_long']);
+//                 unset($value['unionid']);
+//                 unset($value['usertoken']);
+//                 unset($value['weixin']);
+//                 unset($value['work']);
+//                 unset($value['zhiye']);
+//                     $res[] = $value;
+//             }
+//         }
+//         if (!empty($result)) {
+//             xformatOutPutJsonData('success', $res, '');
+//         } else {
+//             xformatOutPutJsonData('error', 1, '');
+//         }
+//     }
 
 
 //双向高级匹配
@@ -920,10 +952,8 @@ public function seniorBothMatch() {
     $nianlingduan = M('age')->field('aid,a_name')->order('aid')->select();
 
     //获取我的位置
-    if ($userinfo['is_place'] == 1) {
-        $myPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $userinfo['shangquan'])->find();
-    }else{
-        $myPosition = M('subways')->field('city,lon,lat')->where('id='. $userinfo['ditie'])->find();
+    $myPosition = M('city')->field('c_name as city')->where('cid='. $userinfo['city_no'])->find();
+    if($userinfo['ditie']>0){
         //找出所有跟当前用户地铁站在一条地铁线路的地铁站
         $room_subway = M('subways')->field('city,station')->where("id=".$userinfo['ditie'])->find();
         $room_line = M('subways')->field('city,line')->where('city="'.$room_subway['city'].'" AND station="'.$room_subway['station'].'"')->select();
@@ -951,15 +981,11 @@ public function seniorBothMatch() {
         // $time = $this->gettimeDifference($end,$start);
         // if($time<0)
         //     continue;
-        if ($value['is_place'] == 1) {
-            $hisPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $value['shangquan'])->find();
-        }else{
-            $hisPosition = M('subways')->field('city,lon,lat')->where('id='. $value['ditie'])->find();
-        }
+        $hisPosition = M('city')->field('c_name as city')->where('cid='. $value['city_no'])->find();
         //租住城市不一致
         // if($myPosition['city']!=$hisPosition['city'])
         //     continue;
-        $distance = $this->GetDistance(floatval($hisPosition['lon']),floatval($hisPosition['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+        $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
         //15公里以内分数为正，15公里以外分数为负，如果是一条线上的再加分
         if($distance>20)
             continue;
@@ -967,7 +993,7 @@ public function seniorBothMatch() {
             $distance = 15;
         //10公里分数为0，0公里分数为满分，如果是一条线上的再加分
         $fraction = A('Home/Landlord')->getExpValue(0,$weight['distance'],15,0.1,$distance);
-        if (intval($value['is_place']) == 2){
+        if (intval($value['ditie']) > 0){
             $index = array_search($value['ditie'],$subways_line);
             if($index !== FALSE){
                 $fraction += $weight['subway_line']/ceil($distance);
@@ -1098,7 +1124,7 @@ public function seniorBothMatch() {
         $matchuser[$key]['ratio'] = $ratio;
         $matchuser[$key]['pipeidu'] = $ratio;
 //            $matchuser[$key]['Tximg'] = $value['avatar'];
-        $matchuser[$key]['address'] = $value['province'];
+        // $matchuser[$key]['address'] = $value['province'];
 //            $matchuser[$key]['nickName'] = base64_decode($value['name']);
         if (empty($value['avatar'])) {
             if ($value['sex'] == 1) {
@@ -1133,21 +1159,7 @@ public function seniorBothMatch() {
     foreach ($result as $key => $value) {
         if ($value['ratio'] > 0) {
             //显示租住地点
-            if (intval($value['is_place']) == 1) {
-                $xing = M('circles')->field('city_name,area_name,name')->where('id=' . $value['shangquan'])->find();
-                if($xing){
-                    $value['zuzhupos'] = $xing['area_name'] . $xing['name'];
-                }else{
-                    $value['zuzhupos'] = "附近商圈不明确";
-                }
-            } else {
-                $xing = M('subways')->field('city,line,station')->where('id=' . $value['ditie'])->find();
-                if($xing){
-                    $value['zuzhupos'] = $xing['line'] . $xing['station'];
-                }else{
-                    $value['zuzhupos'] = "附近地铁不明确";
-                }
-            }
+            $value['zuzhupos'] = $value['address'];
             //加几个标签
             if($value['school']==$userinfo['school'])
                 $value['labels'][] = '校友';
@@ -1184,8 +1196,6 @@ public function seniorBothMatch() {
             unset($value['has_room']);
             unset($value['hometown']);
             unset($value['is_match']);
-            unset($value['is_place']);
-            unset($value['is_true']);
             unset($value['lovers']);
             unset($value['motion']);
             unset($value['name']);
@@ -1197,7 +1207,6 @@ public function seniorBothMatch() {
             unset($value['province']);
             unset($value['ratio']);
             unset($value['school']);
-            unset($value['shangquan']);
             unset($value['smoking']);
             unset($value['tenant_long']);
             unset($value['unionid']);
@@ -1355,13 +1364,7 @@ public function seniorBothMatch() {
 //            $data['zuzhupos'] = $quan['name'] . $xing['name'];
 //        }
 //        xformatOutPutJsonData('test', $pipei, '');
-        if (intval($data['is_place']) == 1) {
-            $xing = M('circles')->field('city_name,area_name,name')->where('id=' . $data['shangquan'])->find();
-            $data['zuzhupos'] = $xing['area_name'] . $xing['name'];
-        } else {
-            $xing = M('subways')->field('city,line,station')->where('id=' . $data['ditie'])->find();
-            $data['zuzhupos'] = $xing['line'] . $xing['station'];
-        }
+        $data['zuzhupos'] = $data['address'];
         // if (intval($data['is_place']) == 1) {
         //     $xing = M('trading')->field('pid,name')->where('id=' . $data['shangquan'])->find();
         //     $quan = M('trading')->field('name')->where('id=' . $xing['pid'])->find();
@@ -1386,7 +1389,7 @@ public function seniorBothMatch() {
         } else {
             $data['nickname'] = base64_decode($data['name']);
         }
-        $data['address'] = $data['province'];
+        // $data['address'] = $data['province'];
         $data['jiaxiang'] = $data['hometown'];
         $data['dianhua'] = $data['phone'];
 //        $data['wx'] = $data['weixin'];
@@ -1470,6 +1473,71 @@ public function seniorBothMatch() {
     }
 
     /*
+     * 获取支持的租住城市信息
+     */
+
+    public function getSupportCity() {
+        $Data = I('get.');
+        $uid = $Data['id'];
+        if (empty($uid)) {
+            xformatOutPutJsonData('fail', '', '网络错误1！');
+        }
+        if ($Data['token'] !== S('user_' . $Data['id'])) {
+            xformatOutPutJsonData('fail', '', '网络错误2！');
+        }
+        //获取国家
+        $data['countries'] = M('city')->field('DISTINCT country')->select();
+        foreach ($data['countries'] as $k => $v) {
+                // $data['countries'][$k]['id'] = $k + 1;
+                $cities[] = M('city')->field('cid ,c_name as city,lon,lat')->where('country="' . $v['country']. '"')->select();   
+        }
+        $data['cities'] = $cities;
+
+        $user=  M('user')->field('city_no,lon,lat,address')->where('id='.$uid)->find();
+        xformatOutPutJsonData('success', $data, $user);
+    }
+
+    /*
+     * 获取附近的租房信息
+     */
+
+    public function getNeighborInfo() {
+        $Data = I('get.');
+        $uid = $Data['id'];
+        if (empty($uid)) {
+            xformatOutPutJsonData('fail', '', '网络错误1！');
+        }
+        if ($Data['token'] !== S('user_' . $Data['id'])) {
+            xformatOutPutJsonData('fail', '', '网络错误2！');
+        }
+        /*设置要选取的房源地点的经纬度界限
+            1.同一条经线上，纬度相差1°，其距离相差约111千米。
+            2..在同一条纬线上（假设此纬线的纬度为Φ），经度相差1°对应的实际弧长大约为111×cosΦ千米。
+            假设只显示方圆3公里以内的室友，那么先找出纬度相差0.027度，经度相差0.03度
+        */
+        $sqlCondition = "lon<".($Data['lon']+0.03). "AND lon>".($Data['lon']-0.03) . "AND lat<".($Data['lat']+0.027)." AND lat>" .($Data['lat']-0.027);
+        $data['user'] =  M('user')->where($sqlCondition)->count();
+        if($data['user']==0){
+            $data['user'] = "未知";
+        }
+        $dankeCount = M('danke')->where($sqlCondition)->count();
+        $dankePrice = M('danke')->where($sqlCondition)->avg('normal_price');
+        $woaiwojiaCount = M('woaiwojia')->where($sqlCondition)->count();
+        $woaiwojiaPrice = M('woaiwojia')->where($sqlCondition)->avg('normal_price');
+        $landlordPrice = M('landlord_room')->where($sqlCondition. "AND publish=1")->avg('price');
+        $landlordCount = M('landlord_room')->where($sqlCondition. "AND publish=1")->count();
+        $data['room_count'] = $dankeCount + $woaiwojiaCount + $landlordCount;
+        if($data['room_count']>0)
+            $data['room_price'] = ($dankeCount*$dankePrice + $woaiwojiaCount*$woaiwojiaPrice + $landlordCount*$landlordPrice)/$data['room_count'];
+        else{
+            $data['room_count'] = "未知";
+            $data['room_price'] = "未知";
+        }
+        // xformatOutPutJsonData('test2', $woaiwojiaCount, $woaiwojiaPrice);
+        xformatOutPutJsonData('success', $data, M()->getLastSql());
+    }
+
+    /*
      * 获取高级匹配基本信息
      */
 
@@ -1495,7 +1563,12 @@ public function seniorBothMatch() {
         //获取星座
         $data['constellation'] = M('constellation')->field('id,c_name')->select();
         //获取预算
-        $data['budget'] = M('budget')->field('id,b_name')->select();
+        $country = M('user')->alias('a')
+                ->field('a.*,b.country as country')
+                ->join('LEFT JOIN xqwl_city b ON a.city_no =b.cid')
+                ->where("a.id = ".$uid)
+                ->find();
+        $data['budget'] = M('budget')->field('id,b_name')->where("country='".$country['country']."'")->select();
         xformatOutPutJsonData('success', $data, '');
     }
 
@@ -1938,7 +2011,13 @@ public function seniorBothMatch() {
         // $data['zuiwtime'] = date('Y-m-d',strtotime($data['checkoutime']));
         $data['zuiztime'] = $data['checkintime'];
         $data['zuiwtime'] = $data['checkoutime'];
-        $res['yusuan'] = M('budget')->field('id,b_name')->select();
+        $country = M('user')->alias('a')
+                ->field('a.*,b.country as country')
+                ->join('LEFT JOIN xqwl_city b ON a.city_no =b.cid')
+                ->where("a.id = ".$uid)
+                ->find();
+        $res['yusuan'] = M('budget')->field('id,b_name')->where("country='".$country['country']."'")->select();
+        
         foreach ($res['yusuan'] as $key => $value) {
             if($data['budget']==$value['id']){
                 $res['index3'] = $key;
@@ -1954,13 +2033,7 @@ public function seniorBothMatch() {
             $tenant_long = M('tenant_long')->field('name')->where('id=' . $data['tenant_long'])->find();
             $data['zutime'] = $tenant_long['name'];
         }
-        if (intval($data['is_place']) == 1) {
-            $xing = M('circles')->field('city_name,area_name,name')->where('id=' . $data['shangquan'])->find();
-            $data['zuzhupos'] = $xing['city_name'].$xing['area_name'] . $xing['name'];
-        } else {
-            $xing = M('subways')->field('city,line,station')->where('id=' . $data['ditie'])->find();
-            $data['zuzhupos'] = $xing['city'].$xing['line'] . $xing['station'];
-        }
+        $data['zuzhupos'] = $data['address'];
         if(intval($data['is_match']) == 1){
            $res['info'] = $data;
            xformatOutPutJsonData('success', $res, '');
@@ -2631,8 +2704,8 @@ public function seniorBothMatch() {
         2..在同一条纬线上（假设此纬线的纬度为Φ），经度相差1°对应的实际弧长大约为111×cosΦ千米。
         假设只显示方圆10公里以内的房源，那么纬度相差0.09度，经度相差0.1度吧
         */
-        $sqlCondition = "lon<".($myPosition['lon']+0.1). "AND lon>".($myPosition['lon']-0.1) 
-                        . "AND lat<".($myPosition['lat']+0.09)." AND lat>" .($myPosition['lat']-0.09);
+        $sqlCondition = "lon<".($userinfo['lon']+0.1). "AND lon>".($userinfo['lon']-0.1) 
+                        . "AND lat<".($userinfo['lat']+0.09)." AND lat>" .($userinfo['lat']-0.09);
         
         //蛋壳公寓的房源
         $danke = M('danke')->field('id,room_title as title,lon, lat,feature,normal_price,promotion_price,room_id,room_size,room_type,room_floor,room_subway,roommate,room_image_link')->where($sqlCondition)->select();
@@ -2681,7 +2754,7 @@ public function seniorBothMatch() {
             unset($value['roommate']);
             $fraction = 0;
             //租住地点匹配,计算两地的距离
-            $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+            $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
             // $value['distance'] = $distance;
             //10公里以内分数为正，10公里以外分数为负
             $fraction += bcmul(10-$distance, $PosWeight['city_score'])/10;
@@ -2749,7 +2822,7 @@ public function seniorBothMatch() {
 
             $fraction = 0;
             //租住地点匹配,计算两地的距离
-            $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+            $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
             // $value['distance'] = $distance;
             //10公里以内分数为正，10公里以外分数为负
             $fraction += bcmul(10-$distance, $PosWeight['city_score'])/10;
@@ -2863,7 +2936,10 @@ public function seniorBothMatch() {
         );
         if($Data['request']==1){
             //$Data['request']=1为保存需求，为-1为不保存需求，有这个参数说明是点了筛选界面之后的请求
-            $update1['is_place'] = 2;
+            $update1['lon'] = $Data['lon'];
+            $update1['lat'] = $Data['lat'];
+            $update1['address'] = $Data['address'];
+            $update1['city_no'] = $Data['city'];
             $update1['ditie'] = $Data['subway'];
             $update1['checkintime'] = $Data['earlydate'];
             $update1['checkoutime'] = $Data['lastdate'];
@@ -2892,7 +2968,7 @@ public function seniorBothMatch() {
         }
         if($Data['request']==-1){
             $looksex = $Data['gender'];
-            $lookTradition = $Data['tradition'];
+            $lookTradition = $Data['tradition']?explode(",",$Data['tradition']):NULL;
             $lookRentType = $Data['rent_type'];
             $lookType = $Data['type'];
 
@@ -2901,8 +2977,12 @@ public function seniorBothMatch() {
             $look_duration  = $Data['duration'];
             $look_budget  = $Data['budget'];
 
+            //获取我的位置
+            $userinfo = M('user')->field('sex')->where('id=' . $uid)->find();
+            $userinfo['lon'] = $Data['lon'];
+            $userinfo['lat'] = $Data['lat'];
             if(!empty($Data['subway']) && intval($Data['subway'])>0){
-                $myPosition = M('subways')->field('city,lon,lat')->where('id='. $Data['subway'])->find();
+                // $myPosition = M('subways')->field('city,lon,lat')->where('id='. $Data['subway'])->find();
                 //找出所有跟当前房屋地铁站在一条地铁线路的地铁站
                 $subways_line = array();
                 $room_subway = M('subways')->field('city,station')->where("id=".$Data['subway'])->find();
@@ -2912,32 +2992,14 @@ public function seniorBothMatch() {
                     $subways_line = array_merge($subways_line, array_column($subways_result, 'id'));
                 }
                 if(count($subways_line)==0){
-                    array_push($subways_line,0);
+                    array_push($subways_line,-1);
                 }
             }else{
-                //获取我的位置
-                $userinfo = M('user')->field('shangquan,ditie,is_place')->where('id=' . $uid)->find();
-                if ($userinfo['is_place'] == 1) {
-                    $subways_line[] = 0;
-                    $myPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $userinfo['shangquan'])->find();
-                }else{
-                    $myPosition = M('subways')->field('city,lon,lat')->where('id='. $userinfo['ditie'])->find();
-                    //找出所有跟当前房屋地铁站在一条地铁线路的地铁站
-                    $room_subway = M('subways')->field('city,station')->where("id=".$userinfo['ditie'])->find();
-                    $room_line = M('subways')->field('city,line')->where('city="'.$room_subway['city'].'" AND station="'.$room_subway['station'].'"')->select();
-                    $subways_line = array();
-                    foreach($room_line as $k=>$v){
-                        $subways_result =  M('subways')->field('id')->where('city="'.$v['city'].' "AND line="' .$v['line'].'"')->select();
-                        $subways_line = array_merge($subways_line, array_column($subways_result, 'id'));
-                    }
-                    if(count($subways_line)==0){
-                        array_push($subways_line,0);
-                    }
-                }
+                $subways_line[] = -1;
             }
         }else{
             //当前用户基本租房信息
-            $userinfo = M('user')->field('shangquan,ditie,checkintime,checkoutime,tenant_long,budget,is_place')->where('id=' . $uid)->find();
+            $userinfo = M('user')->field('sex,lon,lat,ditie,checkintime,checkoutime,tenant_long,budget')->where('id=' . $uid)->find();
             $look_start_date  = $userinfo['checkintime'];
             $look_end_date  = $userinfo['checkoutime'];
             $look_duration  = $userinfo['tenant_long'];
@@ -2949,13 +3011,13 @@ public function seniorBothMatch() {
                 $lookTradition = explode(",",$userpm['tradition']);
                 $lookRentType = $userpm['rent_type'];
                 $lookType = $userpm['type'];
+            }else{
+                $lookTradition = NULL;
             }
             //获取我的位置
-            if ($userinfo['is_place'] == 1) {
+            if (intval($userinfo['ditie']) == 0) {
                 $subways_line[] = 0;
-                $myPosition = M('circles')->field('city_name as city,lon,lat')->where('id='. $userinfo['shangquan'])->find();
             }else{
-                $myPosition = M('subways')->field('city,lon,lat')->where('id='. $userinfo['ditie'])->find();
                 if($lookTradition!=NULL && array_search(3,$lookTradition)!==FALSE){
                     //找出所有跟当前房屋地铁站在一条地铁线路的地铁站
                     $room_subway = M('subways')->field('city,station')->where("id=".$userinfo['ditie'])->find();
@@ -2966,14 +3028,13 @@ public function seniorBothMatch() {
                         $subways_line = array_merge($subways_line, array_column($subways_result, 'id'));
                     }
                     if(count($subways_line)==0){
-                        array_push($subways_line,0);
+                        array_push($subways_line,-1);
                     }
                 }else{
-                    $subways_line[] = 0;
+                    $subways_line[] = -1;
                 }
             }
         }
-        // xformatOutPutJsonData('test', $lookType, $subways_line);
         //dump($userinfo);
         /*设置要选取的房源地点的经纬度界限
         1.同一条经线上，纬度相差1°，其距离相差约111千米。
@@ -2985,53 +3046,27 @@ public function seniorBothMatch() {
         $latdiff = 0.09;
         $maxDis = 10;
         $sqlCondition = "";
-        if($lookTradition){
+        if($lookTradition!=NULL){
             //需要筛选通勤方式
-            if(array_search(2,$lookTradition)!==FALSE){
-                //选择了骑行可达，那么设置成5公里以内
-                $londiff = 0.05;
-                $latdiff = 0.045;
-                $maxDis = 5;
-            }else if(array_search(1,$lookTradition)!==FALSE){
+            if(array_search(1,$lookTradition)!==FALSE){
                 //选择了步行可达，那么设置成2公里以内
                 $londiff = 0.02;
                 $latdiff = 0.018;
                 $maxDis = 2;
+            }else if(array_search(2,$lookTradition)!==FALSE){
+                //选择了骑行可达，那么设置成5公里以内
+                $londiff = 0.05;
+                $latdiff = 0.045;
+                $maxDis = 5;
             }
-            else if ($userinfo['is_place'] == 2 && array_search(3,$lookTradition)!==FALSE){
+            if (intval($userinfo['ditie']) != 0 && array_search(3,$lookTradition)!==FALSE){
                 $sqlCondition = "subway in (".implode(",",$subways_line).") AND ";
             }
         }
-        $sqlCondition = $sqlCondition. "lon<".($myPosition['lon']+$londiff). "AND lon>".($myPosition['lon']-$londiff). "AND lat<".($myPosition['lat']+$latdiff)." AND lat>" .($myPosition['lat']-$latdiff);
-        switch($look_budget){
-            case 1:
-                $bud_low = 0;
-                $bud_high = 1500;
-                break;
-            case 2:
-                $bud_low = 1501;
-                $bud_high = 2000;
-                break;
-            case 3:
-                $bud_low = 2001;
-                $bud_high = 3000;
-                break;
-            case 4:
-                $bud_low = 3001;
-                $bud_high = 5000;
-                break;
-            case 5:
-                $bud_low = 5001;
-                $bud_high = 10000;
-                break;
-            case 6:
-                $bud_low = 10001;
-                $bud_high = 15000;
-                break;
-            default:
-                $bud_low = 0;
-                $bud_high = 100000;
-                break;
+        // xformatOutPutJsonData($lookTradition, $look_budget,$look_budget>0);
+        $sqlCondition = $sqlCondition. "lon<".($userinfo['lon']+$londiff). "AND lon>".($userinfo['lon']-$londiff). "AND lat<".($userinfo['lat']+$latdiff)." AND lat>" .($userinfo['lat']-$latdiff);
+        if($look_budget>0){
+            $look_budget = M('budget')->field('low,high')->where("id=".$look_budget)->find();
         }
         //获取那些被我拉黑的房源
         $heimingdan = M('shoucang')->field('dislikehouse')->where('uid=' . $uid)->find();
@@ -3089,7 +3124,7 @@ public function seniorBothMatch() {
         //         continue;
         //     $fraction = 0;
         //     //租住地点匹配,计算两地的距离
-        //     $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+        //     $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
         //     // $value['distance'] = $distance;
         //     //10公里以内分数为正，10公里以外分数为负
         //     $fraction += bcmul(10-$distance, $PosWeight['city_score'])/10;
@@ -3160,7 +3195,7 @@ public function seniorBothMatch() {
         //     if($index !== FALSE)
         //         continue;
         //     $value['id'] = 'ziruyu'.$value['id'];
-        //     $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+        //     $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
         //     if($distance>10)
         //         continue;
         //     $fraction = 100;
@@ -3259,7 +3294,7 @@ public function seniorBothMatch() {
                     continue;
                 unset($value['roommate']);
                 //租住地点匹配,计算两地的距离
-                $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+                $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
                 // $value['subway_line'] = 0;
                 //排除超过最大公里数的房源
                 if($distance>$maxDis){
@@ -3281,13 +3316,10 @@ public function seniorBothMatch() {
                 }
                 //租住预算匹配，预算符合，越低分越高
                 $price = intval($value['price']);
-                if($price<=$bud_high){
+                if(!($look_budget>0) || $price<=$look_budget['high']){
                     $fraction += $weight['price'];
                 }else{
-                    $price_diff = $price -$bud_high;
-                    if($price_diff>3000)
-                        $price_diff= 3000;
-                    $fraction += A('Home/Landlord')->getExpValue(0,$weight['price'],3000,0.0001,$price_diff);
+                    $fraction += $weight['price']/($price / (bcadd($look_budget['low'],$look_budget['high'])/2));
                 }
                 //n室m厅：n/m 
                 $value['type2'] = explode(",",$value['room_type'])[0];
@@ -3330,8 +3362,7 @@ public function seniorBothMatch() {
                 $images = json_decode($value['room_image_link'],true);
                 $value['image'] = $images[0];
                 unset($value['room_image_link']);
-                if($lookTradition==NULL || intval($Data['subway'])==0||$userinfo['is_place'] == 1||array_search(3,$lookTradition)===FALSE){
-                    //租住地点为商圈的人不会加在同一地铁线路的权重
+                if($lookTradition==NULL || $subways_line[0] ==-1 ||array_search(3,$lookTradition)===FALSE){
                     $value['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
                 }else{
                     $value['ratio'] = bcdiv($fraction, $weight['distance']+$weight['subway_line']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
@@ -3378,7 +3409,7 @@ public function seniorBothMatch() {
                 //室友匹配 我爱我家没有室友
 
                 //租住地点匹配,计算两地的距离
-                $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+                $distance = $this->GetDistance(floatval($value['lon']),floatval($value['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
                 //排除超过最大公里数的房源
                 if($distance>$maxDis){
                     if(array_search($value['subway'],$subways_line)!=FALSE){
@@ -3390,17 +3421,18 @@ public function seniorBothMatch() {
                         $fraction += $weight['subway_line']/ceil($distance);
                     }
                 }
+                // $value['fraction'][] = $fraction;
                 $value['price'] = $value['normal_price'];
                 //租住预算匹配，预算符合，越低分越高
                 $price = intval($value['price']);
-                if($price<=$bud_high){
+                // $value['fraction'][] = $price;
+                // $value['fraction'][] = $look_budget['high'];
+                if(!($look_budget>0) || $price<=$look_budget['high']){
                     $fraction += $weight['price'];
                 }else{
-                    $price_diff = $price -$bud_high;
-                    if($price_diff>3000)
-                        $price_diff= 3000;
-                    $fraction += A('Home/Landlord')->getExpValue(0,$weight['price'],3000,0.0001,$price_diff);
+                    $fraction += $weight['price']/($price / (bcadd($look_budget['low'],$look_budget['high'])/2));
                 }
+                // $value['fraction'][] = $fraction;
                 //n室m厅：n/m 
                 $value['type2'] = $value['room_type'];
                 $shiWeiNum = explode("室",$value['type2']);
@@ -3414,12 +3446,14 @@ public function seniorBothMatch() {
                         $shiWeiNum = 1;
                 }
                 $fraction += A('Home/Landlord')->getExpValue(1,$weight['huxing'],3,0.0001,$shiWeiNum);
+                // $value['fraction'][] = $fraction;
                 $value['floor'] = $value['room_floor'];
                 //总楼层：0-6（包括）
                 $floosInfo = explode('/',$value['floor']);
                 if(intval($floosInfo[1])>6){
                     $fraction += $weight['floor_type'];//有电梯
                 }
+                // $value['fraction'][] = $fraction;
                 if($floosInfo[1]=='底')
                     $fraction += $weight['floor_count'];
                 if($floosInfo[1]=='低')
@@ -3430,6 +3464,7 @@ public function seniorBothMatch() {
                     $fraction += 0.4*$weight['floor_count'];
                 if($floosInfo[1]=='顶')
                     $fraction += 0.2*$weight['floor_count'];
+                // $value['fraction'][] = $fraction;
                 if($fraction<0)
                     continue;
                 $value['brand'] = '我爱我家';
@@ -3459,8 +3494,7 @@ public function seniorBothMatch() {
                     $value['image'] = str_replace('http','https',IMG_PATH). '/Public/image/houseDetail404.jpg';
                 unset($value['room_image_link']);
                 // $value['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
-                if($lookTradition==NULL || intval($Data['subway'])==0||$userinfo['is_place'] == 1||array_search(3,$lookTradition)===FALSE){
-                    //租住地点为商圈的人不会加在同一地铁线路的权重
+                if($lookTradition==NULL || $subways_line[0] ==-1 ||array_search(3,$lookTradition)===FALSE){
                     $value['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
                 }else{
                     $value['ratio'] = bcdiv($fraction, $weight['distance']+$weight['subway_line']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
@@ -3493,28 +3527,44 @@ public function seniorBothMatch() {
         // }
         if($lookType==NULL || ($lookType==3|| $lookType==2)){
             if($look_end_date!=NULL){
-                $sqlCondition = $sqlCondition." AND publish =1 AND start_date <=".$look_end_date;
+                $sqlCondition = $sqlCondition." AND publish =1 AND start_date <='".$look_end_date."'";
             }else{
                 $sqlCondition = $sqlCondition." AND publish =1";
             }
-            $landlordRooms = M('landlord_room')->field('id,xiaoqu as title,yajinfangshi,price,huxing as type2,size, visit_time,floor_type,floor_count as floor,subway,lon,lat,type,images')->where($sqlCondition)->select();
+            //排除不符合自己性别和室友性别的房源
+            if($userinfo['sex']==1 || $looksex==1){
+                $sqlCondition = $sqlCondition." AND sex <> 2";
+            }else if($userinfo['sex']==2 || $looksex==2){
+                $sqlCondition = $sqlCondition." AND sex <> 1";
+            }
+            $landlordRooms = M('landlord_room')->field('id,xiaoqu as title,yajinfangshi,price,huxing as type2,size, visit_time,floor_type,floor_count as floor,subway,lon,lat,address as transport ,type,images,rent_type,room_type,rent_temper,city,roomer_count')->where($sqlCondition)->select();
+            // xformatOutPutJsonData('test', $landlordRooms, M()->getLastSql());
             foreach($landlordRooms as $lk => $lv){
                 // if($userinfo['checkoutime']<$lv['start_date']){
                 //     //入住时间不匹配
                 //     continue;
                 // }
-                //租住类型匹配
+                //租住类型匹配,只有国内房源有
                 if($lookRentType==1){
                     //希望整租，排除所有合租的
-                    if($value['rent_type']==0)
+                    if($lv['rent_type']==0)
                         continue;
+                    //海外房源，排除所有合租类型的
+                    if($lv['rent_type']==-1){
+                        $types = explode(",",$lv['room_type']);
+                        $index = array_search("3",$types);
+                        if($index!==FALSE){
+                            continue;
+                        }
+                    }
                 }else if($lookRentType==2){
                     //希望合租，排除所有整租的
-                    if($value['rent_type']==1)
+                    if($lv['rent_type']==1)
                         continue;
                 }
+                
                 //租住地点匹配,计算两地的距离
-                $distance = $this->GetDistance(floatval($lv['lon']),floatval($lv['lat']),floatval($myPosition['lon']),floatval($myPosition['lat']));
+                $distance = $this->GetDistance(floatval($lv['lon']),floatval($lv['lat']),floatval($userinfo['lon']),floatval($userinfo['lat']));
                 //排除超过最大公里数的房源
                 if($distance>$maxDis){
                     if(array_search($lv['subway'],$subways_line)!=FALSE){
@@ -3526,40 +3576,52 @@ public function seniorBothMatch() {
                         $fraction += $weight['subway_line']/ceil($distance);
                     }
                 }
+                // $lv['debug'][] = $distance;
+                // $lv['debug'][] = $maxDis;
+                // $lv['debug'][] = $fraction;
+                // if($lk==0)
+                //     xformatOutPutJsonData($look_budget,$fraction,$lv);
                 //租住预算匹配，预算符合，越低分越高
                 $price = intval($lv['price']);
-                if($price<=$bud_high){
+                if(!($look_budget>0) || $price<=$look_budget['high']){
                     $fraction += $weight['price'];
                 }else{
-                    $price_diff = $price -$bud_high;
-                    if($price_diff>3000)
-                        $price_diff= 3000;
-                    $fraction += A('Home/Landlord')->getExpValue(0,$weight['price'],3000,0.0001,$price_diff);
+                    $fraction += $weight['price']/($price / (bcadd($look_budget['low'],$look_budget['high'])/2));
                 }
-                //n室m厅：n/m 
-                if(intval(explode("厅",$lv['type2'])[1])==0)
-                    $hisShiWei = 3;
-                else $hisShiWei = intval(explode("室",$lv['type2'])[0])/intval(explode("厅",$lv['type2'])[1]);
-                if(intval(explode("室",$lv['type2'])[1])==0)
-                    $hisShiTing = 3;
-                else $hisShiTing = intval(explode("室",$lv['type2'])[0])/intval(explode("室",$lv['type2'])[1]);
-                if($hisShiWei>3)
-                    $hisShiWei = 3;
-                else if($hisShiWei<1)
-                    $hisShiWei = 1;
-                $fraction += A('Home/Landlord')->getExpValue(1,$weight['huxing'],3,0.0001,$hisShiWei);
-                if($hisShiTing>3)
-                    $hisShiTing = 3;
-                else if($hisShiTing<1)
-                    $hisShiTing = 1;
-                $fraction += A('Home/Landlord')->getExpValue(1,$weight['huxing'],3,0.0001,$hisShiTing);
+                // $lv['debug'][] = $fraction;
+                if($lv['rent_type']!=-1){
+                    //n室m厅：n/m 只有国内的房源有
+                    if(intval(explode("厅",$lv['type2'])[1])==0)
+                        $hisShiWei = 3;
+                    else $hisShiWei = intval(explode("室",$lv['type2'])[0])/intval(explode("厅",$lv['type2'])[1]);
+                    if(intval(explode("室",$lv['type2'])[1])==0)
+                        $hisShiTing = 3;
+                    else $hisShiTing = intval(explode("室",$lv['type2'])[0])/intval(explode("室",$lv['type2'])[1]);
+                    if($hisShiWei>3)
+                        $hisShiWei = 3;
+                    else if($hisShiWei<1)
+                        $hisShiWei = 1;
+                    $fraction += A('Home/Landlord')->getExpValue(1,$weight['huxing'],3,0.0001,$hisShiWei);
+                    if($hisShiTing>3)
+                        $hisShiTing = 3;
+                    else if($hisShiTing<1)
+                        $hisShiTing = 1;
+                    $fraction += A('Home/Landlord')->getExpValue(1,$weight['huxing'],3,0.0001,$hisShiTing);
+                }else{
+                    // $lv['type2'] = intval($lv['rent_temper'])==1?"冷租":"暖租";
+                    $lv['type2'] = "可住".$lv['roomer_count']."人";
+                }
+                // $lv['debug'][] = $fraction;
                 if($lv['floor_type']==1){
                     $fraction += $weight['floor_type'];
                     $lv['labels'][] = '电梯房';
                 }else{
                     $lv['labels'][] = '楼梯房';
                 }
-                $floor_diff = intval($lv['floor_count']);
+                // $lv['debug'][] = $fraction;
+                // if($lk==0)
+                //     xformatOutPutJsonData('test',$fraction,$lv);
+                $floor_diff = intval($lv['floor']);
                 if($floor_diff>15)
                     $floor_diff = 15;
                 else if($floor_diff<1)
@@ -3578,12 +3640,6 @@ public function seniorBothMatch() {
                 }
                 unset($lv['type']);
                 $lv['floor'] = $lv['floor'].'层';
-                $transport = M('subways')->field('line,station')->where('id='.$lv['subway'])->find();
-                if($transport){
-                    $lv['transport'] = $transport['line'].$transport['station'].'附近';
-                }else{
-                    $lv['transport'] = '房东未按规定上传附近交通信息';
-                }
                 unset($lv['subway']);
                 if($lv['images']!=''){
                     $images = explode(";",$lv['images']);
@@ -3603,15 +3659,23 @@ public function seniorBothMatch() {
                 }else if($lv['visit_time']==2){
                     $lv['labels'][] = '周末看房';
                 }else{
-                    $lv['labels'][] = '周中';
+                    $lv['labels'][] = '周中看房';
                 }
                 unset($lv['visit_time']);
                 unset($lv['floor_type']);
                 unset($lv['start_date']);
-                if($lookTradition==NULL  || intval($Data['subway'])==0||$userinfo['is_place'] == 1||array_search(3,$lookTradition)===FALSE){
-                    $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                if($lookTradition==NULL  || $subways_line[0] ==-1||array_search(3,$lookTradition)===FALSE){
+                    if($lv['rent_type']!=-1){//国内房源
+                        $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                    }else{
+                        $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['price']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                    }
                 }else{
-                    $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['subway_line']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                    if($lv['rent_type']!=-1){//国内房源
+                        $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['subway_line']+$weight['price']+$weight['huxing']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                    }else{
+                        $lv['ratio'] = bcdiv($fraction, $weight['distance']+$weight['subway_line']+$weight['price']+$weight['floor_type']+$weight['floor_count'], 4) * 100;
+                    }
                 }
                 if($lv['ratio']>=100){
                     $lv['ratio'] = 99.99;
@@ -3716,10 +3780,10 @@ public function seniorBothMatch() {
                 $result['labels0'][] = explode(",",$res['room_type'])[0];
                 $result['transport'] = $res['room_subway'];
                 $result['labels'] = explode(",",$res['feature']);
-                if($res['rent_whole']==1)
-                    $result['labels'][] = '整租';
-                else
-                    $result['labels'][] = '合租';
+                // if($res['rent_whole']==1)
+                //     $result['labels'][] = '整租';
+                // else
+                //     $result['labels'][] = '合租';
                 $roommates=json_decode(strtr(strtr($res['roommate'],": ",':'),"'",'"'));
                 $hasEmpty = 0;
                 foreach($roommates as $k=>$v){
@@ -3819,63 +3883,107 @@ public function seniorBothMatch() {
             $Data['roomid'] = str_replace("landlord",'',$Data['roomid']);
             $room = M('landlord_room')->field('*')->where('id='.$Data['roomid'])->find();
             if($room){
-                $res['id'] = "landlord".$room['id'];
-                $res['labels0'][] = $room['size'].'平米';
-                if($room['type']==1){
-                    $res['brand'] = '房东直租房源';
-                }else if($room['type']==2){
-                    $res['brand'] = '个人转租房源';
+                // $master = M('landlord')->field('country')->where('id='.$room['master_id'])->find();
+                $country = M('city')->field('country')->where('cid='.$room['city'])->find();
+                $room['country'] = $country['country'];
+                if($room['rent_type']!=-1){//国内房源
+                    // $subway = M('subways')->field('line,station')->where('id=' . $room['subway'])->find();
+                    // $room['transport'] = '近'.$subway['line'].$subway['station'];
+                    if($room['subway']>0){
+                        $room['labels'][] = '近地铁';
+                    }
+                    $room['labels'][] = $room['yajinfangshi'];
+                    if($room['visit_time']==1){
+                        $room['labels'][] = '随时看房';
+                    }else if($room['visit_time']==2){
+                        $room['labels'][] = '周末看房';
+                    }else if($room['visit_time']==3){
+                        $room['labels'][] = '周内看房';
+                    }
+                    $room['labels'][] = "可住".$room['roomer_count']."人";
+                    $room['labels0'][] = $room['size'].'平米';
+                    $room['labels0'][] = $room['huxing'];
+                    $room['labels0'][] = $room['floor_count'];
+                    if($room['floor_type']==1)
+                        $room['labels0'][] = '电梯房';
+                    else 
+                        $room['labels0'][] = '楼梯房';
                 }else{
-                    $res['brand'] = $room['zhongjie'];
+                    $room['labels0'][] = $room['size'].'平米';
+                    $room['labels0'][] = "可住".$room['roomer_count']."人";
+                    $room['labels0'][] = $room['floor_count'];
+                    if($room['register']==1){
+                        $room['labels0'][] = "可注册(anmelden)";
+                    }else{
+                        $room['labels0'][] = "不可注册(anmelden)";
+                    }
+                    if($room['sex']==1){
+                        $room['labels'][] = "招男租客";
+                    }else if($room['sex']==2){
+                        $room['labels'][] = "招女租客";
+                    }else if($room['sex']==3){
+                        $room['labels'][] = "不限性别";
+                    }
+                    
+                    if($room['floor_type']==1)
+                        $room['labels'][] = '电梯房';
+                    else 
+                        $room['labels'][] = '楼梯房';
+                    
+                    $types = explode(",",$room['room_type']);
+                    if(!(array_search(1,$types)===FALSE))
+                        $room['labels'][] = '住宅';
+                    if(!(array_search(2,$types)===FALSE))
+                        $room['labels'][] = '单身公寓';
+                    if(!(array_search(3,$types)===FALSE))
+                        $room['labels'][] = '合租';
+                        
+                    if($room['rent_temper']==1){
+                        $room['labels'][] = "冷租";
+                    }else if($room['rent_temper']==2){
+                        $room['labels'][] = "暖租";
+                    }
+                }
+                unset($room['roomer_count']);
+                $room['id'] = "landlord".$room['id'];
+                $room['transport'] = $room['address'];
+                if($room['type']==1){
+                    $room['brand'] = '房东直租房源';
+                }else if($room['type']==2){
+                    $room['brand'] = '个人转租房源';
+                }else{
+                    $room['brand'] = $room['zhongjie'];
                 }
                 if($room['publish']==0){
-                    $res['title'] = $room['xiaoqu'].'[已下架]';
+                    $room['title'] = $room['xiaoqu'].'[已下架]';
                 }else{
-                    $res['title'] = $room['xiaoqu'];
+                    $room['title'] = $room['xiaoqu'];
                 }
-                if($room['floor_type']==1)
-                    $res['labels0'][] = '电梯房';
-                else 
-                    $res['labels0'][] = '楼梯房';
-                $res['labels0'][] = $room['floor_count'];
-                $res['labels0'][] = $room['huxing'];
-
-                $subway = M('subways')->field('line,station')->where('id=' . $room['subway'])->find();
-                $res['transport'] = '近'.$subway['line'].$subway['station'];
-                $res['labels'][] = $room['yajinfangshi'];
-                if($room['visit_time']==1){
-                    $res['labels'][] = '随时看房';
-                }else if($room['visit_time']==2){
-                    $res['labels'][] = '周末看房';
-                }else if($room['visit_time']==3){
-                    $res['labels'][] = '周内看房';
-                }
-                $res['labels'][] = '最早'.$room['start_date'].'可住';
-                $res['price'] = $room['price'];
-                $res['lon'] = $room['lon'];
-                $res['lat'] = $room['lat'];
-                $res['description'] = $room['description'];
+                $room['labels'][] = $room['start_date'].'可住';
+                $room['price'] = $room['price'];
+                $room['lon'] = $room['lon'];
+                $room['lat'] = $room['lat'];
+                $room['description'] = $room['description'];
                 $images = explode(";",$room['images']);
                 foreach($images as $k=>$v){
                     if($v!=''){
                         if($k<3){
-                            $res['imgs']['卧室'.($k+1)] = $v;
+                            $room['imgs']['卧室'.($k+1)] = $v;
                         }else if($k==3){
-                            $res['imgs']['客厅'] = $v;
+                            $room['imgs']['客厅'] = $v;
                         }else if($k==4){
-                            $res['imgs']['厨房'] = $v;
+                            $room['imgs']['厨房'] = $v;
                         }else if($k==5){
-                            $res['imgs']['卫生间'] = $v;
+                            $room['imgs']['卫生间'] = $v;
                         }else{
-                            $res['imgs']['其他'.($k-5)] = $v;
+                            $room['imgs']['其他'.($k-5)] = $v;
                         }
                     }
                 };
-                $res['master_id'] = $room['master_id'];
                 if($Data['token']!="visit"){
                     //返回当前是否已经被收藏或者拉黑
-                    $res['shoucang'] = 0;
-                    $res['heimingdan'] = 0;   
+                    $room['shoucang'] = 0;
+                    $room['heimingdan'] = 0;   
                     $result3 = M('shoucang')->field('likehouse,dislikehouse')->where('uid=' . $uid)->find();
                     // xformatOutPutJsonData('test', $result3, '');
                     if($result3){
@@ -3883,15 +3991,15 @@ public function seniorBothMatch() {
                         $myShoucang = explode(",",$houses['landlord']);
                         $index = array_search($Data['roomid'],$myShoucang);
                         if(!($index===FALSE))
-                            $res['shoucang'] = 1;
+                            $room['shoucang'] = 1;
                         $houses = json_decode($result3['dislikehouse'],true);
                         $myHeimingdan = explode(",",$houses['landlord']);
                         $index = array_search($Data['roomid'],$myHeimingdan);
                         if(!($index===FALSE))
-                            $res['heimingdan'] = 1;    
+                            $room['heimingdan'] = 1;    
                     }
                 }
-                xformatOutPutJsonData('success', $res, '');
+                xformatOutPutJsonData('success', $room, '');
             } else {
                 xformatOutPutJsonData('fail', 1, 'error roomid');
             }
@@ -4012,18 +4120,10 @@ public function seniorBothMatch() {
         if ($Data['token'] !== S('user_' . $uid)) {
             xformatOutPutJsonData('fail', '', '网络错误2！');
         }
-        $user = M('user')->field('is_place,shangquan,ditie')->where('id=' . $uid)->find();
-        if ($user) {
-            if ($user['is_place'] == 1) {
-                $myPosition = M('circles')->field('city_name as city')->where('id='. $user['shangquan'])->find();
-            }else{
-                $myPosition = M('subways')->field('city')->where('id='. $user['ditie'])->find();
-            }
-            $room = M('room')->field('*')->where('master_id=' . $uid)->find();
-            xformatOutPutJsonData('success', $room, $myPosition['city']);
-        }else{
-            xformatOutPutJsonData('fail', 1, "查询城市信息出错");
-        }
+        $user = M('user')->field('city_no')->where('id=' . $uid)->find();
+        $myPosition = M('city')->field('c_name as city')->where('cid='. $user['city_no'])->find();
+        $room = M('room')->field('*')->where('master_id=' . $uid)->find();
+        xformatOutPutJsonData('success', $room, $myPosition['city']);
     }
 
     public function getCondition(){
@@ -4035,18 +4135,26 @@ public function seniorBothMatch() {
         if ($Data['token'] !== S('user_' . $uid)) {
             xformatOutPutJsonData('fail', '', '网络错误2！');
         }
-        $wx_member = M('user')->field('is_place,shangquan,ditie,checkintime,checkoutime, tenant_long,budget')->where('id='.$uid)->find();
-        if ($wx_member['is_place'] == 1) {
-            $myPosition = M('circles')->field('city_name as city,area_name,name')->where('id='. $wx_member['shangquan'])->find();
-            $city = $myPosition['city'];
-            $result['pos'] = $myPosition['area_name'].$myPosition['name'];
-            $result['subway'] = 0;
-        }else if ($wx_member['is_place'] == 2) {
-            $myPosition = M('subways')->field('city,line,station')->where('id='. $wx_member['ditie'])->find();
-            $city = $myPosition['city'];
-            $result['pos'] = $myPosition['line'].$myPosition['station'];
-            $result['subway'] = $wx_member['ditie'];
-        }
+        $wx_member = M('user')->field('city_no,address,lon,lat,ditie,checkintime,checkoutime, tenant_long,budget')->where('id='.$uid)->find();
+        $result['cityid'] = $wx_member['city_no'];
+        $result['pos'] = $wx_member['address'];
+        $result['lon'] = $wx_member['lon'];
+        $result['lat'] = $wx_member['lat'];
+        $result['subway'] = $wx_member['ditie'];
+        $myPosition = M('city')->field('country, c_name as city')->where('cid='. $wx_member['city_no'])->find();
+        $city = $myPosition['city'];
+        $result['city'] = $myPosition['city'];
+        // if ($wx_member['is_place'] == 1) {
+        //     $myPosition = M('circles')->field('city_name as city,area_name,name')->where('id='. $wx_member['shangquan'])->find();
+        //     $city = $myPosition['city'];
+        //     $result['pos'] = $myPosition['area_name'].$myPosition['name'];
+        //     $result['subway'] = 0;
+        // }else if ($wx_member['is_place'] == 2) {
+        //     $myPosition = M('subways')->field('city,line,station')->where('id='. $wx_member['ditie'])->find();
+        //     $city = $myPosition['city'];
+        //     $result['pos'] = $myPosition['line'].$myPosition['station'];
+        //     $result['subway'] = $wx_member['ditie'];
+        // }
         $result['earlydate'] = $wx_member['checkintime'];
         $result['lastdate'] = $wx_member['checkoutime'];
         $result['duration'] = $wx_member['tenant_long'];
@@ -4073,7 +4181,13 @@ public function seniorBothMatch() {
         //租住时长
         $result['durations'] =M('tenant_long')->field('id,name')->select();
         //租住预算
-        $result['budgets'] =M('budget')->field('id,b_name as name')->select();
+        $country = M('user')->alias('a')
+                ->field('a.*,b.country as country')
+                ->join('LEFT JOIN xqwl_city b ON a.city_no =b.cid')
+                ->where("a.id = ".$uid)
+                ->find();
+        $result['budgets'] = M('budget')->field('id,b_name as name')->where("country='".$country['country']."'")->select();
+        
         xformatOutPutJsonData('success', $result, "");
     }
 

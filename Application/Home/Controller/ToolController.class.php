@@ -247,6 +247,51 @@ class ToolController extends HomeBaseController {
         }
         xformatOutPutJsonData('success', '', $count);
     }
+
+    //根据用户的地铁或者商圈生成用户所在经纬度和租房地点
+    public function updateUserLoc(){
+        $Data = I('get.');
+        $user = M('user')->field('id,is_place,shangquan,ditie')->where('id>='.$Data['start']." AND id<".($Data['start']+1000)." AND is_match>0")->select();
+        $count = 0;
+        $cities = M('city')->field('cid ,c_name as city')->select();
+        foreach($user as $key=>$wx_member){
+            //获取位置
+            if ($wx_member['is_place'] == 1) {
+                $myPosition = M('circles')->field('province_name as city,lon,lat,area_name,name')->where('id='. $wx_member['shangquan'])->find();
+                if($myPosition){
+                    $update['lon'] = $myPosition['lon'];
+                    $update['lat'] = $myPosition['lat'];
+                    $update['address'] = $myPosition['area_name'].$myPosition['name'];
+                    foreach ($cities as $k => $v) {
+                        if($v['city']==$myPosition['city']){
+                            $update['city_no'] = $v['cid'];
+                        }
+                    }
+                    $res = M('user')->where('id='.$wx_member['id'])->save($update);
+                    xformatOutPutJsonData($update,$wx_member, M()->getLastSql());
+                    if($res)
+                        $count ++;
+                }
+            }else if ($wx_member['is_place'] == 2) {
+                $myPosition = M('subways')->field('city,lon,lat,line,station')->where('id='. $wx_member['ditie'])->find();
+                if($myPosition){
+                    $update['lon'] = $myPosition['lon'];
+                    $update['lat'] = $myPosition['lat'];
+                    $update['address'] = $myPosition['line'].$myPosition['station'];
+                    foreach ($cities as $k => $v) {
+                        if($v['city']==$myPosition['city']){
+                            $update['city_no'] = $v['cid'];
+                        }
+                    }
+                    $res = M('user')->where('id='.$wx_member['id'])->save($update);
+                    if($res)
+                        $count ++;
+                }
+            }
+        }
+        xformatOutPutJsonData('success',$Data['start']+1000, $count);
+    }
+
     //数据库结构变动之后要主动清除TP框架的缓存,清除服务器缓存之后重新生成usertoken
     public function updateUserToken(){
         $wx_member = M('user')->field('id')->select();

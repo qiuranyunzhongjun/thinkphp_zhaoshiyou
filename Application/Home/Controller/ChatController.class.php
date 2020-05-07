@@ -889,7 +889,6 @@ class ChatController extends HomeBaseController {
             xformatOutPutJsonData('fail', $res, $state);
         }
     }
-
     /**
      * 发送小程序订阅消息
      * @param $data
@@ -948,7 +947,6 @@ class ChatController extends HomeBaseController {
         }
         return $access_token;
     }
-
     /**
 	 * 发送post请求
 	 * @param string $url
